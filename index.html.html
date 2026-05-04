@@ -1,0 +1,1476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<title>Kingdom of Villages — Enhanced RTS</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=IM+Fell+English&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;-webkit-user-select:none;user-select:none}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0d06;font-family:'IM Fell English',serif;color:#e8d8a8}
+#wrap{position:relative;width:100vw;height:100vh}
+canvas{display:block;cursor:crosshair}
+#hud{position:absolute;top:0;left:0;right:0;padding:6px 10px;background:linear-gradient(180deg,rgba(20,15,5,.92),rgba(20,15,5,.55));border-bottom:2px solid #6b4a18;display:flex;gap:10px;align-items:center;font-size:13px;z-index:10;flex-wrap:wrap}
+#hud .title{font-family:'Cinzel',serif;color:#f0c060;letter-spacing:2px;font-weight:800;text-shadow:0 0 12px #c08020}
+.chip{background:rgba(255,220,120,.08);border:1px solid #6b4a18;padding:3px 8px;border-radius:4px;display:flex;gap:5px;align-items:center}
+.chip b{color:#f0d080}
+#bottom{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,rgba(20,15,5,.95),rgba(20,15,5,.4));border-top:2px solid #6b4a18;padding:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;z-index:10;font-size:13px}
+button.b{background:linear-gradient(180deg,#5a3c14,#2c1c08);color:#f0d080;border:1px solid #8a6a20;padding:6px 12px;border-radius:4px;cursor:pointer;font-family:inherit;font-size:13px}
+button.b:hover{background:linear-gradient(180deg,#7a5418,#3c2810)}
+button.b.act{background:linear-gradient(180deg,#a07020,#604010);box-shadow:0 0 10px #c08020}
+#menu{position:absolute;inset:0;background:radial-gradient(ellipse at center,#1a1408 0%,#000 100%);z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;overflow:auto;padding:20px}
+#menu h1{font-family:'Cinzel',serif;color:#f0c060;font-size:42px;letter-spacing:6px;text-shadow:0 0 24px #c08020;text-align:center}
+#menu h2{font-family:'Cinzel',serif;color:#d8b070;font-size:18px;letter-spacing:3px;margin-top:8px}
+.countries{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-width:780px}
+.country{padding:10px;border:2px solid #5a3c14;border-radius:6px;cursor:pointer;text-align:center;background:rgba(40,28,10,.6);transition:.15s}
+.country:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(192,128,32,.4)}
+.country.sel{border-color:#f0c060;background:rgba(80,56,20,.8);box-shadow:0 0 20px #c08020}
+.swatch{width:100%;height:34px;border-radius:3px;margin-bottom:5px;border:1px solid #000}
+.modes{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;max-width:780px}
+.mode{padding:10px 14px;border:2px solid #5a3c14;border-radius:6px;cursor:pointer;background:rgba(40,28,10,.6);font-size:13px}
+.mode:hover{border-color:#c08020}
+.mode.sel{border-color:#f0c060;background:rgba(80,56,20,.8)}
+.mode b{color:#f0c060;font-family:'Cinzel',serif;letter-spacing:1px}
+#startBtn{margin-top:10px;padding:14px 40px;font-size:18px;font-family:'Cinzel',serif;letter-spacing:3px;background:linear-gradient(180deg,#a07020,#604010);color:#fff;border:2px solid #f0c060;border-radius:6px;cursor:pointer;text-shadow:0 0 8px #000}
+#startBtn:hover{box-shadow:0 0 24px #f0c060}
+#minimap{position:absolute;right:10px;bottom:60px;width:200px;height:160px;border:2px solid #6b4a18;background:rgba(0,0,0,.7);z-index:9;cursor:pointer}
+#sel{font-size:12px;color:#d8b070;min-width:200px}
+#endScreen{position:absolute;inset:0;background:rgba(0,0,0,.92);z-index:60;display:none;flex-direction:column;align-items:center;justify-content:center;gap:20px}
+#endScreen h1{font-family:'Cinzel',serif;font-size:48px;letter-spacing:6px}
+.help{position:absolute;left:10px;bottom:60px;background:rgba(0,0,0,.7);padding:8px 10px;border:1px solid #6b4a18;border-radius:4px;font-size:11px;color:#b8a878;max-width:240px;z-index:9;line-height:1.5}
+#touchPad{position:absolute;left:14px;bottom:80px;width:130px;height:130px;border-radius:50%;background:radial-gradient(circle,rgba(60,40,15,.55),rgba(20,15,5,.35));border:2px solid #6b4a18;z-index:11;display:none;touch-action:none}
+#touchPad .nub{position:absolute;left:40px;top:40px;width:50px;height:50px;border-radius:50%;background:radial-gradient(circle,#a07020,#3c2810);border:2px solid #f0c060;box-shadow:0 0 12px #c08020;pointer-events:none}
+#actBar{position:absolute;right:10px;top:60px;display:none;flex-direction:column;gap:8px;z-index:11}
+#actBar .ab{width:58px;height:58px;border-radius:50%;background:linear-gradient(180deg,#5a3c14,#2c1c08);border:2px solid #8a6a20;color:#f0d080;font-size:11px;font-family:'Cinzel',serif;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-direction:column;line-height:1;padding:0;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.6)}
+#actBar .ab.act{background:linear-gradient(180deg,#c08020,#604010);box-shadow:0 0 14px #f0c060}
+#actBar .ab span{font-size:18px}
+@media (max-width:900px),(pointer:coarse){
+  #hud{font-size:11px;padding:4px 6px;gap:6px}
+  .chip{padding:2px 5px;font-size:11px}
+  #bottom{font-size:11px;gap:4px;padding:6px 4px;overflow-x:auto;flex-wrap:nowrap}
+  button.b{padding:8px 8px;font-size:11px;min-width:auto;flex-shrink:0}
+  #minimap{width:130px;height:104px;bottom:64px;right:6px}
+  .help{display:none!important}
+  #sel{min-width:auto;font-size:10px;flex-basis:100%}
+  #menu h1{font-size:28px;letter-spacing:3px}
+  .countries{grid-template-columns:repeat(2,1fr)}
+  .modes{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div id="wrap">
+<canvas id="cv"></canvas>
+
+<div id="menu">
+  <h1>KINGDOM OF VILLAGES</h1>
+  <div style="color:#a89868;letter-spacing:2px;font-size:13px">A Prehistoric-Style Real-Time Strategy</div>
+
+  <h2>CHOOSE YOUR NATION</h2>
+  <div class="countries" id="countryGrid"></div>
+
+  <h2>BATTLE MODE</h2>
+  <div class="modes" id="modeGrid"></div>
+
+  <button id="startBtn">BEGIN BATTLE</button>
+</div>
+
+<div id="hud" style="display:none">
+  <span class="title">⚔ KINGDOM</span>
+  <span class="chip">🪵 <b id="rWood">0</b></span>
+  <span class="chip">🪨 <b id="rStone">0</b></span>
+  <span class="chip">⛃ <b id="rGold">0</b></span>
+  <span class="chip">🍖 <b id="rFood">0</b></span>
+  <span class="chip">👥 <b id="rPop">0</b>/<b id="rCap">0</b></span>
+  <span class="chip" id="rNation"></span>
+  <span class="chip" id="rDay">Day 1</span>
+  <span class="chip" id="rAge">Age I</span>
+  <span style="margin-left:auto" class="chip" id="rPlayers"></span>
+</div>
+
+<div id="bottom" style="display:none">
+  <span id="sel">Nothing selected</span>
+  <button class="b" data-build="house">🏠 House (30W)</button>
+  <button class="b" data-build="farm">🌾 Farm (40W)</button>
+  <button class="b" data-build="barracks">⚔ Barracks (80W,40S)</button>
+  <button class="b" data-build="stable">🐎 Stable (100W,50S)</button>
+  <button class="b" data-build="siege">🏰 Siege (120W,80S)</button>
+  <button class="b" data-build="monastery">⛪ Monastery (100W,40G)</button>
+  <button class="b" data-build="tower">🗼 Tower (60S)</button>
+  <button class="b" data-build="gate">🚪 Gate (50W,30S)</button>
+  <button class="b" data-train="villager">+Villager (50F)</button>
+  <button class="b" data-train="soldier">+Soldier (60F,20G)</button>
+  <button class="b" data-train="archer">+Archer (40F,30G)</button>
+  <button class="b" data-train="cavalry">+Cavalry (80F,60G)</button>
+  <button class="b" data-train="ram">+Ram (100W,80G)</button>
+  <button class="b" data-train="monk">+Monk (80F,40G)</button>
+  <button class="b" id="btnAge">⬆ Advance Age (200F,100G)</button>
+</div>
+
+<canvas id="minimap" width="200" height="160" style="display:none"></canvas>
+<div class="help" id="help" style="display:none">
+<b>Controls:</b><br>
+LMB: Select / Box-select<br>
+RMB: Move / Attack / Gather<br>
+Shift+RMB: Queue<br>
+Click villager + tree/stone/gold/animal: assign work<br>
+A: Attack-move | S: Stop | H: Town Hall<br>
+Drag minimap to scroll
+</div>
+
+<div id="endScreen"><h1 id="endTitle"></h1><button class="b" onclick="location.reload()">Play Again</button></div>
+
+<!-- Mobile virtual joystick for camera panning -->
+<div id="touchPad"><div class="nub" id="touchNub"></div></div>
+
+<!-- Mobile action bar -->
+<div id="actBar">
+  <button class="ab" id="abMode" title="Toggle mode"><span>👆</span>SEL</button>
+  <button class="ab" id="abAtk" title="Attack-move"><span>⚔</span>ATK</button>
+  <button class="ab" id="abStop" title="Stop"><span>✋</span>STOP</button>
+  <button class="ab" id="abHome" title="Town Hall"><span>🏛</span>HOME</button>
+  <button class="ab" id="abAll" title="Select all army"><span>👥</span>ALL</button>
+</div>
+
+</div>
+
+<script>
+//================ CONFIG ================
+const W=2400,H=1800; // world
+const COUNTRIES=[
+ {name:'Bangladesh',color:'#1a8a3a',accent:'#d04030'},
+ {name:'Pakistan',  color:'#f0f0e8',accent:'#0a5a2a'},
+ {name:'Sri Lanka', color:'#e8c020',accent:'#8a3010'},
+ {name:'Bhutan',    color:'#c02020',accent:'#f0c040'},
+ {name:'China',     color:'#1a5acc',accent:'#f0d040'},
+ {name:'Nepal',     color:'#e8801c',accent:'#a01818'},
+ {name:'British',   color:'#202020',accent:'#c01818'},
+ {name:'India',     color:'#7030b0',accent:'#f0a030'},
+];
+const MODES=[
+ {n:'1v1: You vs AI', t:[[0],[1]]},
+ {n:'2v2: You+Ally vs 2 AI', t:[[0,1],[2,3]]},
+ {n:'FFA 3 players', t:[[0],[1],[2]]},
+ {n:'FFA 4 players', t:[[0],[1],[2],[3]]},
+ {n:'FFA 5 players', t:[[0],[1],[2],[3],[4]]},
+ {n:'FFA 6 players', t:[[0],[1],[2],[3],[4],[5]]},
+ {n:'FFA 7 players', t:[[0],[1],[2],[3],[4],[5],[6]]},
+ {n:'FFA 8 players', t:[[0],[1],[2],[3],[4],[5],[6],[7]]},
+ {n:'2v2v2v2 (8p teams)', t:[[0,1],[2,3],[4,5],[6,7]]},
+ {n:'3v3 (you+2 vs 3 AI)', t:[[0,1,2],[3,4,5]]},
+ {n:'4v4 (you+3 vs 4 AI)', t:[[0,1,2,3],[4,5,6,7]]},
+];
+
+let chosenCountry=0, chosenMode=0;
+
+// menu setup
+const cg=document.getElementById('countryGrid');
+COUNTRIES.forEach((c,i)=>{
+  const d=document.createElement('div'); d.className='country'+(i===0?' sel':'');
+  d.innerHTML=`<div class="swatch" style="background:${c.color}"></div><b>${c.name}</b>`;
+  d.onclick=()=>{chosenCountry=i;[...cg.children].forEach(x=>x.classList.remove('sel'));d.classList.add('sel')};
+  cg.appendChild(d);
+});
+const mg=document.getElementById('modeGrid');
+MODES.forEach((m,i)=>{
+  const d=document.createElement('div'); d.className='mode'+(i===0?' sel':'');
+  const np=m.t.flat().length;
+  d.innerHTML=`<b>${m.n}</b> &mdash; ${np} players, ${m.t.length} teams`;
+  d.onclick=()=>{chosenMode=i;[...mg.children].forEach(x=>x.classList.remove('sel'));d.classList.add('sel')};
+  mg.appendChild(d);
+});
+
+document.getElementById('startBtn').onclick=()=>{
+  document.getElementById('menu').style.display='none';
+  document.getElementById('hud').style.display='flex';
+  document.getElementById('bottom').style.display='flex';
+  document.getElementById('minimap').style.display='block';
+  document.getElementById('help').style.display='block';
+  if(IS_TOUCH){
+    document.getElementById('touchPad').style.display='block';
+    document.getElementById('actBar').style.display='flex';
+  }
+  startGame();
+};
+const IS_TOUCH = ('ontouchstart' in window) || navigator.maxTouchPoints>0 || matchMedia('(pointer:coarse)').matches;
+
+//================ GAME STATE ================
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+const mm=document.getElementById('minimap'),mctx=mm.getContext('2d');
+function resize(){cv.width=innerWidth;cv.height=innerHeight}
+addEventListener('resize',resize); resize();
+
+let cam={x:0,y:0};
+let players=[]; // {id,country,team,isHuman,res,units,buildings,cap}
+let units=[],buildings=[],trees=[],stones=[],golds=[],animals=[],birds=[],corpses=[];
+let projectiles=[],particles=[];
+let selected=[];
+let selectionBox=null;
+let buildMode=null;
+let mouse={x:0,y:0,sx:0,sy:0,down:false,btn:0};
+let dayTime=0,gameTime=0;
+let ended=false;
+
+function rand(a,b){return a+Math.random()*(b-a)}
+function dist(a,b){const dx=a.x-b.x,dy=a.y-b.y;return Math.hypot(dx,dy)}
+
+//================ WORLD GEN ================
+const RIVER=[]; // points along river
+function genRiver(){
+  const segs=40;
+  for(let i=0;i<=segs;i++){
+    const t=i/segs;
+    const x=t*W;
+    const y=H*0.5 + Math.sin(t*6)*120 + Math.sin(t*15)*40;
+    RIVER.push({x,y,w:55+Math.sin(t*4)*15});
+  }
+}
+function onRiver(x,y){
+  for(let i=0;i<RIVER.length-1;i++){
+    const a=RIVER[i],b=RIVER[i+1];
+    const dx=b.x-a.x,dy=b.y-a.y, L=Math.hypot(dx,dy);
+    const t=Math.max(0,Math.min(1,((x-a.x)*dx+(y-a.y)*dy)/(L*L)));
+    const px=a.x+dx*t, py=a.y+dy*t;
+    const d=Math.hypot(x-px,y-py);
+    const w=a.w*(1-t)+b.w*t;
+    if(d<w) return true;
+  }
+  return false;
+}
+
+function startGame(){
+  genRiver();
+  const mode=MODES[chosenMode];
+  // build players
+  let pid=0;
+  mode.t.forEach((team,ti)=>{
+    team.forEach(slot=>{
+      const isHuman = (pid===0); // first slot = human
+      // assign country: human = chosenCountry, others rotate avoiding duplicates
+      let cidx;
+      if(isHuman) cidx=chosenCountry;
+      else { cidx=(chosenCountry+pid)%8; if(cidx===chosenCountry) cidx=(cidx+1)%8; }
+      players.push({
+        id:pid, country:COUNTRIES[cidx], team:ti, isHuman,
+        res:{wood:200,stone:120,gold:80,food:200}, cap:5, age:1,
+        eliminated:false, ai:{lastBuild:0,lastTrain:0,lastAttack:0}
+      });
+      pid++;
+    });
+  });
+
+  // place starting positions around the map (avoid river)
+  const N=players.length;
+  const margin=260;
+  const positions=[];
+  for(let i=0;i<N;i++){
+    const ang=(i/N)*Math.PI*2 + Math.PI/N;
+    let x=W/2+Math.cos(ang)*(Math.min(W,H)/2-margin);
+    let y=H/2+Math.sin(ang)*(Math.min(W,H)/2-margin);
+    // avoid river
+    let tries=0;
+    while(onRiver(x,y) && tries<20){ y += (y<H/2?-40:40); tries++; }
+    positions.push({x,y});
+  }
+
+  // place TownHall + starting units per player
+  players.forEach((p,i)=>{
+    const pos=positions[i];
+    addBuilding(p,'townhall',pos.x,pos.y);
+    // gate near front
+    addBuilding(p,'gate',pos.x+40,pos.y+90);
+    for(let k=0;k<4;k++) addUnit(p,'villager',pos.x+rand(-50,50),pos.y+rand(-50,50));
+    for(let k=0;k<2;k++) addUnit(p,'soldier',pos.x+rand(-60,60),pos.y+rand(-60,60));
+    addUnit(p,'monk',pos.x,pos.y-60);
+  });
+
+  // resources
+  for(let i=0;i<260;i++){
+    const x=rand(60,W-60),y=rand(60,H-60);
+    if(onRiver(x,y)) continue;
+    trees.push({x,y,hp:50,r:14,sway:Math.random()*Math.PI*2});
+  }
+  for(let i=0;i<70;i++){
+    const x=rand(60,W-60),y=rand(60,H-60);
+    if(onRiver(x,y)) continue;
+    stones.push({x,y,hp:80,r:16});
+  }
+  for(let i=0;i<35;i++){
+    const x=rand(60,W-60),y=rand(60,H-60);
+    if(onRiver(x,y)) continue;
+    golds.push({x,y,hp:60,r:14});
+  }
+  // animals: deer / boar
+  for(let i=0;i<40;i++){
+    const x=rand(60,W-60),y=rand(60,H-60);
+    if(onRiver(x,y)) continue;
+    animals.push({x,y,vx:0,vy:0,hp:30,kind:Math.random()<0.6?'deer':'boar',
+      dir:Math.random()*Math.PI*2,wander:0,fleeing:0});
+  }
+  // birds
+  for(let i=0;i<25;i++){
+    birds.push({x:rand(0,W),y:rand(0,H),vx:rand(-1,1),vy:rand(-0.5,0.5),flap:Math.random()*10});
+  }
+
+  // center camera on human
+  const hp=players.find(p=>p.isHuman);
+  const myTH=buildings.find(b=>b.owner===hp&&b.type==='townhall');
+  cam.x=myTH.x-innerWidth/2; cam.y=myTH.y-innerHeight/2;
+  document.getElementById('rNation').textContent=hp.country.name;
+  // teams summary
+  const teamStr=mode.t.map((t,i)=>'T'+(i+1)+':'+t.map(s=>players[mode.t.slice(0,i).flat().length+t.indexOf(s)]?.country.name||'?').join('+')).join(' | ');
+  document.getElementById('rPlayers').textContent=teamStr;
+
+  loop();
+}
+
+//================ ENTITIES ================
+const UNIT_DEF={
+  villager:{hp:40,spd:1.4,atk:3,rng:14,sight:160,r:8,carry:10},
+  soldier: {hp:80,spd:1.6,atk:12,rng:18,sight:200,r:9},
+  archer:  {hp:50,spd:1.5,atk:10,rng:160,sight:230,r:8,ranged:true},
+  cavalry: {hp:140,spd:2.4,atk:18,rng:18,sight:220,r:10},
+  ram:     {hp:300,spd:0.9,atk:40,rng:22,sight:160,r:14},
+  monk:    {hp:60,spd:1.5,atk:6,rng:120,sight:240,r:9,heal:true},
+};
+const BLD_DEF={
+  townhall: {hp:1500,r:42,cost:{},cap:5,prov:'house',trains:['villager']},
+  house:    {hp:300,r:22,cost:{wood:30},cap:5},
+  farm:     {hp:200,r:24,cost:{wood:40},food:0.05},
+  barracks: {hp:600,r:30,cost:{wood:80,stone:40},trains:['soldier','archer']},
+  stable:   {hp:700,r:30,cost:{wood:100,stone:50},trains:['cavalry']},
+  siege:    {hp:700,r:32,cost:{wood:120,stone:80},trains:['ram']},
+  monastery:{hp:500,r:28,cost:{wood:100,gold:40},trains:['monk']},
+  tower:    {hp:500,r:18,cost:{stone:60},atk:15,rng:180},
+  gate:     {hp:800,r:20,cost:{wood:50,stone:30}},
+};
+function addUnit(p,type,x,y){
+  const d=UNIT_DEF[type];
+  const u={id:Math.random(),owner:p,type,x,y,hp:d.hp,maxhp:d.hp,
+    tx:null,ty:null,target:null,task:null,carrying:null,carryAmt:0,
+    cd:0,facing:0,anim:Math.random()*10};
+  units.push(u); return u;
+}
+function addBuilding(p,type,x,y){
+  const d=BLD_DEF[type];
+  const b={owner:p,type,x,y,hp:d.hp,maxhp:d.hp,r:d.r,cd:0,built:type==='townhall'?1:0.4,buildPts:type==='townhall'?0:200,queue:[],prog:0};
+  buildings.push(b);
+  if(d.cap) p.cap+=d.cap;
+  return b;
+}
+
+//================ INPUT ================
+cv.addEventListener('mousedown',e=>{
+  mouse.down=true; mouse.btn=e.button;
+  mouse.sx=e.clientX; mouse.sy=e.clientY;
+  mouse.x=e.clientX; mouse.y=e.clientY;
+  if(e.button===0){
+    if(buildMode){
+      const wx=e.clientX+cam.x, wy=e.clientY+cam.y;
+      tryBuild(buildMode,wx,wy);
+      buildMode=null;
+      document.querySelectorAll('#bottom .b').forEach(b=>b.classList.remove('act'));
+      return;
+    }
+    selectionBox={x1:e.clientX,y1:e.clientY,x2:e.clientX,y2:e.clientY};
+  } else if(e.button===2){
+    e.preventDefault();
+    issueOrder(e.clientX+cam.x, e.clientY+cam.y, e.shiftKey);
+  }
+});
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+cv.addEventListener('mousemove',e=>{
+  mouse.x=e.clientX; mouse.y=e.clientY;
+  if(selectionBox){selectionBox.x2=e.clientX;selectionBox.y2=e.clientY}
+});
+cv.addEventListener('mouseup',e=>{
+  mouse.down=false;
+  if(selectionBox){
+    const b=selectionBox;
+    const x1=Math.min(b.x1,b.x2),y1=Math.min(b.y1,b.y2);
+    const x2=Math.max(b.x1,b.x2),y2=Math.max(b.y1,b.y2);
+    const human=players.find(p=>p.isHuman);
+    if(Math.abs(x2-x1)<5 && Math.abs(y2-y1)<5){
+      // single click pick
+      const wx=x1+cam.x, wy=y1+cam.y;
+      let pick=null,bd=null;
+      for(const u of units){ if(u.owner===human && Math.hypot(u.x-wx,u.y-wy)<14){pick=u;break} }
+      if(!pick){
+        for(const bb of buildings){ if(bb.owner===human && Math.hypot(bb.x-wx,bb.y-wy)<bb.r){bd=bb;break} }
+      }
+      const villagersSel = selected.filter(s=>s.type==='villager' && s.owner===human);
+      // case 1: clicked own UNFINISHED building with villagers selected -> assist build
+      if(bd && bd.built<1 && villagersSel.length>0){
+        villagersSel.forEach(u=>{u.task={kind:'build',target:bd}; u.tx=bd.x; u.ty=bd.y; u.target=null;});
+        particles.push({x:wx,y:wy,t:0,kind:'green'});
+        // keep current selection so player can keep ordering
+      } else {
+        // case 2: check for enemy/resource/animal under cursor -> auto-issue order if any selected units
+        const hasSelectedUnits = selected.some(s=>s.type && s.owner===human);
+        let isOrderTarget = false;
+        if(!pick && !bd && hasSelectedUnits){
+          for(const u of units){ if(u.owner.team!==human.team && Math.hypot(u.x-wx,u.y-wy)<14){isOrderTarget=true;break} }
+          if(!isOrderTarget) for(const bb of buildings){ if(bb.owner.team!==human.team && Math.hypot(bb.x-wx,bb.y-wy)<bb.r){isOrderTarget=true;break} }
+          if(!isOrderTarget) for(const t of trees){ if(Math.hypot(t.x-wx,t.y-wy)<t.r){isOrderTarget=true;break} }
+          if(!isOrderTarget) for(const s of stones){ if(Math.hypot(s.x-wx,s.y-wy)<s.r){isOrderTarget=true;break} }
+          if(!isOrderTarget) for(const g of golds){ if(Math.hypot(g.x-wx,g.y-wy)<g.r){isOrderTarget=true;break} }
+          if(!isOrderTarget) for(const a of animals){ if(Math.hypot(a.x-wx,a.y-wy)<10){isOrderTarget=true;break} }
+        }
+        if(isOrderTarget){
+          issueOrder(wx,wy,false);
+          // keep selection
+        } else {
+          selected = pick?[pick]:(bd?[bd]:[]);
+        }
+      }
+    } else {
+      selected = units.filter(u=>u.owner===human && u.x>=x1+cam.x && u.x<=x2+cam.x && u.y>=y1+cam.y && u.y<=y2+cam.y);
+    }
+    selectionBox=null;
+    updateSelInfo();
+  }
+});
+addEventListener('keydown',e=>{
+  if(e.key==='a'||e.key==='A'){ /* attack-move next click */ window._attackMove=true; }
+  if(e.key==='s'||e.key==='S'){ selected.forEach(u=>{if(u.type){u.tx=null;u.target=null;u.task=null}}); }
+  if(e.key==='h'||e.key==='H'){
+    const human=players.find(p=>p.isHuman);
+    const th=buildings.find(b=>b.owner===human&&b.type==='townhall');
+    if(th){cam.x=th.x-innerWidth/2;cam.y=th.y-innerHeight/2}
+  }
+  // edge scroll alt: arrows
+  const sp=40;
+  if(e.key==='ArrowLeft')cam.x-=sp;
+  if(e.key==='ArrowRight')cam.x+=sp;
+  if(e.key==='ArrowUp')cam.y-=sp;
+  if(e.key==='ArrowDown')cam.y+=sp;
+});
+
+document.querySelectorAll('#bottom .b').forEach(btn=>{
+  btn.onclick=()=>{
+    const human=players.find(p=>p.isHuman);
+    if(btn.id==='btnAge'){ tryAdvanceAge(human); return; }
+    if(btn.dataset.build){
+      buildMode=btn.dataset.build;
+      document.querySelectorAll('#bottom .b').forEach(b=>b.classList.remove('act'));
+      btn.classList.add('act');
+    } else if(btn.dataset.train){
+      const sel=selected.find(s=>!s.type && s.owner===human);
+      trainUnit(human, btn.dataset.train, sel||null);
+    }
+  };
+});
+
+function tryBuild(type,x,y){
+  const human=players.find(p=>p.isHuman);
+  const d=BLD_DEF[type];
+  if(!d) return;
+  for(const k in d.cost){ if(human.res[k]<d.cost[k]){ flash('Not enough '+k); return; } }
+  // need a villager selected
+  const v=selected.find(u=>u.type==='villager');
+  if(!v){ flash('Select a villager first'); return; }
+  if(onRiver(x,y)){ flash('Cannot build on river'); return; }
+  for(const k in d.cost) human.res[k]-=d.cost[k];
+  const b=addBuilding(human,type,x,y); b.built=0.05; b.hp=d.hp*0.1;
+  selected.filter(u=>u.type==='villager').forEach(u=>{u.task={kind:'build',target:b};u.tx=b.x;u.ty=b.y;});
+}
+const TRAIN_COST={villager:{food:50},soldier:{food:60,gold:20},archer:{food:40,gold:30},cavalry:{food:80,gold:60},ram:{wood:100,gold:80},monk:{food:80,gold:40}};
+const TRAIN_TIME={villager:300,soldier:420,archer:360,cavalry:540,ram:720,monk:540};
+const TRAIN_AGE={villager:1,soldier:1,archer:1,monk:2,cavalry:2,ram:3};
+function buildingTrains(b,type){
+  const d=BLD_DEF[b.type];
+  return d.trains && d.trains.includes(type);
+}
+function trainUnit(p,type,fromBuilding){
+  const c=TRAIN_COST[type]; if(!c){flash('Unknown unit');return}
+  if((TRAIN_AGE[type]||1) > p.age){flash('Need Age '+TRAIN_AGE[type]);return}
+  for(const k in c) if(p.res[k]<c[k]){flash('Need more '+k);return}
+  if(countUnits(p)>=p.cap){flash('Need more houses');return}
+  // pick a producing building (selected one if valid, else any built one)
+  let src=fromBuilding && buildingTrains(fromBuilding,type)&&fromBuilding.built>=1&&fromBuilding.owner===p ? fromBuilding : null;
+  if(!src) src=buildings.find(b=>b.owner===p&&b.built>=1&&buildingTrains(b,type));
+  if(!src){flash('Need a '+(BLD_DEF.barracks.trains.includes(type)?'barracks':type==='cavalry'?'stable':type==='ram'?'siege workshop':type==='monk'?'monastery':'town hall'));return}
+  for(const k in c) p.res[k]-=c[k];
+  src.queue.push({type,time:TRAIN_TIME[type]});
+}
+function tryAdvanceAge(p){
+  if(p.age>=3){flash('Max age reached');return}
+  const cost={food:200,gold:100};
+  for(const k in cost) if(p.res[k]<cost[k]){flash('Need more '+k);return}
+  for(const k in cost) p.res[k]-=cost[k];
+  p.age++; flash('Advanced to Age '+p.age+'!');
+}
+function countUnits(p){return units.filter(u=>u.owner===p).length}
+
+let flashMsg='',flashT=0;
+function flash(m){flashMsg=m;flashT=120}
+
+function issueOrder(wx,wy,queue){
+  const human=players.find(p=>p.isHuman);
+  // find target at click
+  let tgt=null;
+  for(const u of units){ if(u.owner.team!==human.team && Math.hypot(u.x-wx,u.y-wy)<14){tgt={kind:'enemy',e:u};break} }
+  if(!tgt){ for(const b of buildings){ if(b.owner.team!==human.team && Math.hypot(b.x-wx,b.y-wy)<b.r){tgt={kind:'enemy',e:b};break} } }
+  if(!tgt){ for(const t of trees){ if(Math.hypot(t.x-wx,t.y-wy)<t.r){tgt={kind:'tree',e:t};break} } }
+  if(!tgt){ for(const s of stones){ if(Math.hypot(s.x-wx,s.y-wy)<s.r){tgt={kind:'stone',e:s};break} } }
+  if(!tgt){ for(const g of golds){ if(Math.hypot(g.x-wx,g.y-wy)<g.r){tgt={kind:'gold',e:g};break} } }
+  if(!tgt){ for(const a of animals){ if(Math.hypot(a.x-wx,a.y-wy)<10){tgt={kind:'hunt',e:a};break} } }
+  if(!tgt){ for(const b of buildings){ if(b.owner===human && b.built<1 && Math.hypot(b.x-wx,b.y-wy)<b.r){tgt={kind:'build',e:b};break} } }
+  if(!tgt){ for(const b of buildings){ if(b.owner===human && b.type==='townhall' && Math.hypot(b.x-wx,b.y-wy)<b.r){tgt={kind:'deposit',e:b};break} } }
+
+  selected.forEach(u=>{
+    if(!u.type) return;
+    if(tgt){
+      if(tgt.kind==='enemy'){ u.target=tgt.e; u.task=null; u.tx=tgt.e.x; u.ty=tgt.e.y; }
+      else if(u.type==='villager'){
+        u.task={kind:tgt.kind,target:tgt.e}; u.tx=tgt.e.x; u.ty=tgt.e.y; u.target=null;
+      } else { u.tx=wx; u.ty=wy; u.target=null; u.task=null; }
+    } else {
+      u.tx=wx+rand(-10,10); u.ty=wy+rand(-10,10); u.target=null; u.task=null;
+    }
+  });
+  // ping
+  particles.push({x:wx,y:wy,t:0,kind:tgt?(tgt.kind==='enemy'?'red':'green'):'blue'});
+}
+function updateSelInfo(){
+  const el=document.getElementById('sel');
+  if(!selected.length){el.textContent='Nothing selected';return}
+  if(selected[0].type){
+    const counts={};
+    selected.forEach(u=>counts[u.type]=(counts[u.type]||0)+1);
+    el.textContent='Selected: '+Object.entries(counts).map(([k,v])=>v+' '+k).join(', ');
+  } else { el.textContent='Building: '+selected[0].type+' ('+Math.round(selected[0].hp)+'hp)'; }
+}
+
+//================ AI ================
+function runAI(p){
+  if(p.isHuman||p.eliminated) return;
+  const ai=p.ai; ai.lastBuild++; ai.lastTrain++; ai.lastAttack++;
+  const myUnits=units.filter(u=>u.owner===p);
+  const myVillagers=myUnits.filter(u=>u.type==='villager');
+  const mySoldiers=myUnits.filter(u=>u.type==='soldier'||u.type==='monk');
+  // assign idle villagers to gather
+  myVillagers.forEach(v=>{
+    if(!v.task && !v.target){
+      const need = ['wood','food','gold','stone'].sort((a,b)=>p.res[a]-p.res[b])[0];
+      let res;
+      if(need==='wood') res=trees[Math.floor(Math.random()*trees.length)];
+      else if(need==='food') res=animals[Math.floor(Math.random()*animals.length)];
+      else if(need==='gold') res=golds[Math.floor(Math.random()*golds.length)];
+      else res=stones[Math.floor(Math.random()*stones.length)];
+      if(res){
+        const kind=need==='wood'?'tree':need==='food'?'hunt':need==='gold'?'gold':'stone';
+        v.task={kind,target:res}; v.tx=res.x; v.ty=res.y;
+      }
+    }
+  });
+  // train
+  if(ai.lastTrain>180){
+    ai.lastTrain=0;
+    if(myVillagers.length<8 && p.res.food>=50 && countUnits(p)<p.cap) trainUnit(p,'villager');
+    else if(p.res.food>=60 && p.res.gold>=20 && countUnits(p)<p.cap) trainUnit(p,'soldier');
+  }
+  // age advance
+  if(p.age<3 && p.res.food>=400 && p.res.gold>=200){ tryAdvanceAge(p); }
+  // build house if low cap
+  if(ai.lastBuild>240 && countUnits(p)>=p.cap-2 && p.res.wood>=30){
+    ai.lastBuild=0;
+    const v=myVillagers.find(u=>!u.task);
+    const th=buildings.find(b=>b.owner===p&&b.type==='townhall');
+    if(v && th){
+      const x=th.x+rand(-150,150),y=th.y+rand(-150,150);
+      if(!onRiver(x,y)){
+        p.res.wood-=30;
+        const b=addBuilding(p,'house',x,y); b.built=0.05; b.hp=30;
+        v.task={kind:'build',target:b}; v.tx=b.x; v.ty=b.y;
+      }
+    }
+  }
+  // attack
+  if(ai.lastAttack>500 && mySoldiers.length>=4){
+    ai.lastAttack=0;
+    // pick enemy player from another team
+    const enemies=players.filter(o=>o.team!==p.team && !o.eliminated);
+    if(enemies.length){
+      const eo=enemies[Math.floor(Math.random()*enemies.length)];
+      const eth=buildings.find(b=>b.owner===eo&&b.type==='townhall');
+      if(eth){ mySoldiers.forEach(s=>{s.tx=eth.x+rand(-30,30);s.ty=eth.y+rand(-30,30);s.target=eth}); }
+    }
+  }
+}
+
+//================ UPDATE ================
+function update(){
+  gameTime++; dayTime=(dayTime+0.0008)%1;
+  // edge scroll
+  const es=10;
+  if(mouse.x<20) cam.x-=es; if(mouse.x>innerWidth-20) cam.x+=es;
+  if(mouse.y<20) cam.y-=es; if(mouse.y>innerHeight-60) cam.y+=es;
+  cam.x=Math.max(0,Math.min(W-innerWidth,cam.x));
+  cam.y=Math.max(0,Math.min(H-innerHeight,cam.y));
+
+  if(flashT>0)flashT--;
+
+  // birds
+  birds.forEach(b=>{
+    b.x+=b.vx; b.y+=b.vy; b.flap+=0.3;
+    if(b.x<-20)b.x=W+20; if(b.x>W+20)b.x=-20;
+    if(b.y<-20||b.y>H+20){b.vy*=-1}
+    if(Math.random()<0.005){b.vx=rand(-1.2,1.2);b.vy=rand(-0.5,0.5)}
+  });
+
+  // animals
+  animals.forEach(a=>{
+    a.wander--;
+    if(a.fleeing>0){a.fleeing--}
+    if(a.wander<=0){a.dir=Math.random()*Math.PI*2;a.wander=120+Math.random()*120;}
+    const sp=a.fleeing>0?1.6:0.4;
+    a.x+=Math.cos(a.dir)*sp; a.y+=Math.sin(a.dir)*sp;
+    a.x=Math.max(20,Math.min(W-20,a.x)); a.y=Math.max(20,Math.min(H-20,a.y));
+  });
+
+  // players AI
+  players.forEach(runAI);
+
+  // farm food + production queues
+  buildings.forEach(b=>{
+    if(b.type==='farm' && b.built>=1) b.owner.res.food += 0.05;
+    if(b.built>=1 && b.queue && b.queue.length){
+      const job=b.queue[0];
+      job.time--;
+      if(job.time<=0){
+        if(countUnits(b.owner) < b.owner.cap){
+          addUnit(b.owner,job.type,b.x+rand(-30,30),b.y+b.r+10);
+          b.queue.shift();
+        } else {
+          job.time=1; // wait for cap
+        }
+      }
+    }
+  });
+
+  // units
+  for(let i=units.length-1;i>=0;i--){
+    const u=units[i]; if(u.cd>0)u.cd--;
+    u.anim+=0.2;
+    const D=UNIT_DEF[u.type];
+    // task processing
+    if(u.task){
+      const t=u.task,e=t.target;
+      if(!e || (e.hp!==undefined && e.hp<=0)){ u.task=null; }
+      else {
+        u.tx=e.x; u.ty=e.y;
+        const d=Math.hypot(u.x-e.x,u.y-e.y);
+        const reach = (e.r||10)+12;
+        if(d<reach){
+          u.tx=null;
+          if(t.kind==='build'){
+            const need = e.maxhp - e.hp;
+            const rate = 1.2;
+            e.hp=Math.min(e.maxhp,e.hp+rate);
+            e.built=Math.min(1,e.hp/e.maxhp);
+            if(e.built>=1){ u.task=null; }
+          } else if(t.kind==='tree'||t.kind==='stone'||t.kind==='gold'||t.kind==='hunt'){
+            u.lastGather=t.kind;
+            if(u.cd<=0){
+              u.cd=20;
+              e.hp-=5;
+              if(t.kind==='hunt'){ e.fleeing=200; e.dir=Math.atan2(e.y-u.y,e.x-u.x); }
+              if(e.hp<=0){
+                // collect
+                const kind = t.kind==='tree'?'wood':t.kind==='stone'?'stone':t.kind==='gold'?'gold':'food';
+                const amt = t.kind==='hunt'?40:25;
+                u.carrying=kind; u.carryAmt=amt;
+                // remove resource
+                if(t.kind==='tree') trees.splice(trees.indexOf(e),1);
+                else if(t.kind==='stone') stones.splice(stones.indexOf(e),1);
+                else if(t.kind==='gold') golds.splice(golds.indexOf(e),1);
+                else animals.splice(animals.indexOf(e),1);
+                // go deposit at TH
+                const th=buildings.find(b=>b.owner===u.owner&&b.type==='townhall');
+                if(th){ u.task={kind:'deposit',target:th,resume:t.kind}; u.tx=th.x; u.ty=th.y; }
+                else u.task=null;
+              }
+            }
+          } else if(t.kind==='deposit'){
+            if(u.carrying){ u.owner.res[u.carrying]+=u.carryAmt; u.carrying=null; u.carryAmt=0; }
+            // auto-return to nearest same-kind resource
+            const resume = t.resume || u.lastGather;
+            let pool=null;
+            if(resume==='tree') pool=trees;
+            else if(resume==='stone') pool=stones;
+            else if(resume==='gold') pool=golds;
+            else if(resume==='hunt') pool=animals;
+            if(pool && pool.length){
+              let best=null,bd=Infinity;
+              for(const r of pool){ const dd=Math.hypot(r.x-u.x,r.y-u.y); if(dd<bd){bd=dd;best=r} }
+              if(best){ u.task={kind:resume,target:best}; u.tx=best.x; u.ty=best.y; }
+              else u.task=null;
+            } else u.task=null;
+          }
+        }
+      }
+    }
+    // combat target
+    if(u.target){
+      const e=u.target;
+      if(!e || e.hp<=0){ u.target=null; }
+      else {
+        u.tx=e.x; u.ty=e.y;
+        const d=Math.hypot(u.x-e.x,u.y-e.y);
+        if(d<=D.rng+(e.r||10)){
+          u.tx=null;
+          if(u.cd<=0){
+            u.cd= u.type==='monk'?60:30;
+            if(u.type==='monk'){
+              // monk: heal allies if any nearby low hp; else damage
+              const ally=units.find(x=>x.owner.team===u.owner.team && x!==u && x.hp<x.maxhp && Math.hypot(x.x-u.x,x.y-u.y)<120);
+              if(ally){ ally.hp=Math.min(ally.maxhp, ally.hp+15); particles.push({x:ally.x,y:ally.y,t:0,kind:'heal'}); }
+              else { e.hp-=D.atk; projectiles.push({x:u.x,y:u.y,tx:e.x,ty:e.y,t:0,life:18,kind:'spirit'}); }
+            } else if(D.rng>30){
+              projectiles.push({x:u.x,y:u.y,tx:e.x,ty:e.y,t:0,life:18,kind:'arrow',dmg:D.atk,target:e});
+            } else { e.hp-=D.atk; particles.push({x:e.x,y:e.y,t:0,kind:'hit'}); }
+          }
+        }
+      }
+    }
+    // auto-acquire enemies for soldiers
+    if(!u.target && !u.task && (u.type==='soldier'||u.type==='monk')){
+      let best=null,bd=999;
+      for(const o of units){ if(o.owner.team!==u.owner.team){const d=Math.hypot(o.x-u.x,o.y-u.y); if(d<D.sight&&d<bd){bd=d;best=o}} }
+      if(!best) for(const o of buildings){ if(o.owner.team!==u.owner.team){const d=Math.hypot(o.x-u.x,o.y-u.y); if(d<D.sight&&d<bd){bd=d;best=o}} }
+      if(best) u.target=best;
+    }
+    // movement
+    if(u.tx!==null){
+      const dx=u.tx-u.x, dy=u.ty-u.y, d=Math.hypot(dx,dy);
+      if(d<2){u.tx=null}
+      else {
+        u.facing=Math.atan2(dy,dx);
+        let nx=u.x+dx/d*D.spd, ny=u.y+dy/d*D.spd;
+        if(!onRiver(nx,ny)){ u.x=nx; u.y=ny; }
+        else { u.x+=Math.cos(u.facing+1.2)*D.spd*0.5; }
+      }
+    }
+    if(u.hp<=0){
+      corpses.push({x:u.x,y:u.y,t:0});
+      const idx=selected.indexOf(u); if(idx>=0)selected.splice(idx,1);
+      units.splice(i,1);
+    }
+  }
+
+  // tower attack
+  buildings.forEach(b=>{
+    if(b.type==='tower' && b.built>=1){
+      if(b.cd>0)b.cd--;
+      if(b.cd<=0){
+        let best=null,bd=999;
+        for(const o of units){ if(o.owner.team!==b.owner.team){const d=Math.hypot(o.x-b.x,o.y-b.y); if(d<BLD_DEF.tower.rng&&d<bd){bd=d;best=o}} }
+        if(best){
+          projectiles.push({x:b.x,y:b.y-20,tx:best.x,ty:best.y,t:0,life:25,kind:'arrow',dmg:BLD_DEF.tower.atk,target:best});
+          b.cd=45;
+        }
+      }
+    }
+  });
+
+  // projectiles
+  for(let i=projectiles.length-1;i>=0;i--){
+    const p=projectiles[i]; p.t++;
+    const k=p.t/p.life;
+    p.cx=p.x+(p.tx-p.x)*k;
+    p.cy=p.y+(p.ty-p.y)*k - Math.sin(k*Math.PI)*20;
+    if(p.t>=p.life){
+      if(p.target && p.target.hp!==undefined){ p.target.hp-=p.dmg||0; particles.push({x:p.target.x,y:p.target.y,t:0,kind:'hit'}); }
+      projectiles.splice(i,1);
+    }
+  }
+  // particles
+  for(let i=particles.length-1;i>=0;i--){ particles[i].t++; if(particles[i].t>30) particles.splice(i,1); }
+  for(let i=corpses.length-1;i>=0;i--){ corpses[i].t++; if(corpses[i].t>600) corpses.splice(i,1); }
+
+  // building HP / elimination
+  for(let i=buildings.length-1;i>=0;i--){
+    const b=buildings[i];
+    if(b.hp<=0){
+      if(BLD_DEF[b.type].cap) b.owner.cap-=BLD_DEF[b.type].cap;
+      const idx=selected.indexOf(b); if(idx>=0)selected.splice(idx,1);
+      buildings.splice(i,1);
+    }
+  }
+  players.forEach(p=>{
+    if(!p.eliminated){
+      const has = buildings.some(b=>b.owner===p&&b.type==='townhall');
+      if(!has){ p.eliminated=true; }
+    }
+  });
+  // win check
+  if(!ended){
+    const aliveTeams=new Set(players.filter(p=>!p.eliminated).map(p=>p.team));
+    if(aliveTeams.size<=1){
+      ended=true;
+      const human=players.find(p=>p.isHuman);
+      const won = !human.eliminated;
+      document.getElementById('endTitle').textContent=won?'⚔ VICTORY ⚔':'☠ DEFEAT ☠';
+      document.getElementById('endTitle').style.color=won?'#f0c060':'#c04040';
+      document.getElementById('endScreen').style.display='flex';
+    }
+  }
+
+  // HUD
+  const h=players.find(p=>p.isHuman);
+  document.getElementById('rWood').textContent=Math.floor(h.res.wood);
+  document.getElementById('rStone').textContent=Math.floor(h.res.stone);
+  document.getElementById('rGold').textContent=Math.floor(h.res.gold);
+  document.getElementById('rFood').textContent=Math.floor(h.res.food);
+  document.getElementById('rPop').textContent=countUnits(h);
+  document.getElementById('rCap').textContent=h.cap;
+  document.getElementById('rDay').textContent='Day '+(1+Math.floor(gameTime/3600));
+  document.getElementById('rAge').textContent='Age '+['I','II','III'][h.age-1];
+}
+
+//================ RENDER ================
+function drawWorld(){
+  // ground gradient (day/night tint)
+  const night = (Math.sin(dayTime*Math.PI*2)+1)/2; // 0 day - 1 night ish
+  const grass1=`hsl(${85-night*15},${45-night*20}%,${28-night*10}%)`;
+  const grass2=`hsl(${95-night*15},${40-night*20}%,${20-night*8}%)`;
+  const g=ctx.createLinearGradient(0,0,0,innerHeight);
+  g.addColorStop(0,grass1); g.addColorStop(1,grass2);
+  ctx.fillStyle=g; ctx.fillRect(0,0,innerWidth,innerHeight);
+
+  // grass tufts (cheap)
+  ctx.save();
+  ctx.translate(-cam.x,-cam.y);
+  ctx.fillStyle='rgba(60,80,30,0.25)';
+  for(let x=0;x<W;x+=80){
+    for(let y=0;y<H;y+=80){
+      const sx=(x*13+y*7)%80, sy=(x*7+y*11)%80;
+      if(!onRiver(x+sx,y+sy)){
+        ctx.beginPath(); ctx.arc(x+sx,y+sy,3,0,7); ctx.fill();
+      }
+    }
+  }
+  ctx.restore();
+
+  // RIVER
+  ctx.save(); ctx.translate(-cam.x,-cam.y);
+  // bank
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.strokeStyle='#5a4a28';
+  for(let i=0;i<RIVER.length-1;i++){
+    const a=RIVER[i],b=RIVER[i+1];
+    ctx.lineWidth=(a.w+b.w);
+    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+  }
+  // water
+  for(let i=0;i<RIVER.length-1;i++){
+    const a=RIVER[i],b=RIVER[i+1];
+    const grd=ctx.createLinearGradient(a.x,a.y-a.w,a.x,a.y+a.w);
+    grd.addColorStop(0,'#1a4a6a'); grd.addColorStop(0.5,'#2a7aaa'); grd.addColorStop(1,'#1a4a6a');
+    ctx.strokeStyle=grd;
+    ctx.lineWidth=(a.w+b.w)-12;
+    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+  }
+  // stream lines (animated)
+  ctx.strokeStyle='rgba(220,240,255,0.5)';
+  ctx.lineWidth=1.5;
+  const flow=(gameTime*0.6)%60;
+  for(let i=0;i<RIVER.length-1;i++){
+    const a=RIVER[i],b=RIVER[i+1];
+    for(let k=0;k<3;k++){
+      const off=((i*20+flow+k*20)%60)/60;
+      const px=a.x+(b.x-a.x)*off, py=a.y+(b.y-a.y)*off + (k-1)*a.w*0.5;
+      ctx.beginPath(); ctx.arc(px,py,1.6,0,7); ctx.stroke();
+    }
+  }
+  // sparkles
+  ctx.fillStyle='rgba(255,255,255,0.6)';
+  for(let i=0;i<RIVER.length;i+=2){
+    const a=RIVER[i];
+    const s=Math.sin(gameTime*0.05+i)*0.5+0.5;
+    if(s>0.7){ ctx.beginPath(); ctx.arc(a.x+Math.cos(i)*a.w*0.5,a.y+Math.sin(i*1.3)*a.w*0.4,1.5*s,0,7); ctx.fill(); }
+  }
+  ctx.restore();
+}
+
+function drawTree(t){
+  const sway=Math.sin(gameTime*0.02+t.sway)*2;
+  // shadow
+  ctx.fillStyle='rgba(0,0,0,0.35)';
+  ctx.beginPath(); ctx.ellipse(t.x+4,t.y+8,16,5,0,0,7); ctx.fill();
+  // trunk
+  ctx.fillStyle='#3a2410'; ctx.fillRect(t.x-3,t.y-4,6,14);
+  // foliage layers
+  const cols=['#0e3a16','#175a22','#2a7a32'];
+  cols.forEach((c,i)=>{
+    ctx.fillStyle=c;
+    ctx.beginPath();
+    const r=18-i*4;
+    ctx.arc(t.x+sway-r*0.3,t.y-12-i*4,r,0,7);
+    ctx.arc(t.x+sway+r*0.3,t.y-12-i*4,r,0,7);
+    ctx.arc(t.x+sway,t.y-20-i*4,r,0,7);
+    ctx.fill();
+  });
+}
+function drawStone(s){
+  ctx.fillStyle='rgba(0,0,0,0.35)';
+  ctx.beginPath(); ctx.ellipse(s.x+3,s.y+6,18,5,0,0,7); ctx.fill();
+  ctx.fillStyle='#7a7468'; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,7); ctx.fill();
+  ctx.fillStyle='#5a564e'; ctx.beginPath(); ctx.arc(s.x-4,s.y+2,s.r-4,0,7); ctx.fill();
+  ctx.fillStyle='#a8a496'; ctx.beginPath(); ctx.arc(s.x-3,s.y-3,4,0,7); ctx.fill();
+}
+function drawGold(g){
+  ctx.fillStyle='rgba(0,0,0,0.35)';
+  ctx.beginPath(); ctx.ellipse(g.x+3,g.y+6,16,5,0,0,7); ctx.fill();
+  ctx.fillStyle='#5a4a18'; ctx.beginPath(); ctx.arc(g.x,g.y,g.r,0,7); ctx.fill();
+  ctx.fillStyle='#f0c040'; ctx.beginPath(); ctx.arc(g.x-2,g.y-2,5,0,7); ctx.fill();
+  ctx.fillStyle='#ffeb80'; ctx.beginPath(); ctx.arc(g.x+3,g.y+1,3,0,7); ctx.fill();
+}
+function drawAnimal(a){
+  ctx.fillStyle='rgba(0,0,0,0.35)';
+  ctx.beginPath(); ctx.ellipse(a.x+2,a.y+5,12,4,0,0,7); ctx.fill();
+  if(a.kind==='deer'){
+    ctx.fillStyle='#a06030';
+    ctx.beginPath(); ctx.ellipse(a.x,a.y,9,5,0,0,7); ctx.fill();
+    // legs
+    ctx.fillRect(a.x-6,a.y+2,1.5,5); ctx.fillRect(a.x+5,a.y+2,1.5,5);
+    // head
+    ctx.fillStyle='#8a4a20';
+    ctx.beginPath(); ctx.arc(a.x+Math.cos(a.dir)*8,a.y+Math.sin(a.dir)*8,4,0,7); ctx.fill();
+    // antlers
+    ctx.strokeStyle='#5a3a10'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(a.x+8,a.y-4); ctx.lineTo(a.x+10,a.y-9); ctx.moveTo(a.x+10,a.y-9); ctx.lineTo(a.x+13,a.y-8); ctx.stroke();
+  } else {
+    ctx.fillStyle='#3a2818';
+    ctx.beginPath(); ctx.ellipse(a.x,a.y,10,6,0,0,7); ctx.fill();
+    ctx.fillStyle='#2a1810';
+    ctx.beginPath(); ctx.arc(a.x+Math.cos(a.dir)*8,a.y+Math.sin(a.dir)*8,5,0,7); ctx.fill();
+    // tusks
+    ctx.fillStyle='#f0e8c0'; ctx.fillRect(a.x+10,a.y,2,1);
+  }
+}
+function drawBird(b){
+  const fl=Math.sin(b.flap)*5;
+  ctx.strokeStyle='#1a1a1a'; ctx.lineWidth=2;
+  ctx.beginPath();
+  ctx.moveTo(b.x-6,b.y+fl*0.4); ctx.quadraticCurveTo(b.x,b.y-fl,b.x+6,b.y+fl*0.4); ctx.stroke();
+}
+
+function drawUnit(u){
+  const c=u.owner.country.color, ac=u.owner.country.accent;
+  ctx.fillStyle='rgba(0,0,0,0.4)';
+  ctx.beginPath(); ctx.ellipse(u.x,u.y+8,8,3,0,0,7); ctx.fill();
+  // body
+  const bob=Math.sin(u.anim)*1.5;
+  if(u.type==='villager'){
+    ctx.fillStyle=c; ctx.fillRect(u.x-4,u.y-6+bob*0.3,8,9);
+    ctx.fillStyle='#f0c898'; ctx.beginPath(); ctx.arc(u.x,u.y-10+bob*0.3,3.5,0,7); ctx.fill();
+    if(u.carrying){
+      ctx.fillStyle = u.carrying==='wood'?'#6a3a18':u.carrying==='stone'?'#999':u.carrying==='gold'?'#f0c040':'#c04040';
+      ctx.fillRect(u.x-3,u.y-14+bob*0.3,6,3);
+    }
+  } else if(u.type==='soldier'){
+    ctx.fillStyle=c; ctx.fillRect(u.x-5,u.y-7+bob*0.3,10,10);
+    ctx.fillStyle='#888'; ctx.fillRect(u.x-6,u.y-3,12,3); // belt/armor
+    ctx.fillStyle='#f0c898'; ctx.beginPath(); ctx.arc(u.x,u.y-11+bob*0.3,3.5,0,7); ctx.fill();
+    // sword
+    ctx.strokeStyle='#ddd'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(u.x+5,u.y); ctx.lineTo(u.x+5+Math.cos(u.facing)*8,u.y+Math.sin(u.facing)*8); ctx.stroke();
+    // accent plume
+    ctx.fillStyle=ac; ctx.fillRect(u.x-1,u.y-15+bob*0.3,2,3);
+  } else if(u.type==='monk'){
+    ctx.fillStyle='#d8c890'; // robe
+    ctx.beginPath(); ctx.moveTo(u.x-6,u.y+4); ctx.lineTo(u.x+6,u.y+4); ctx.lineTo(u.x+4,u.y-8); ctx.lineTo(u.x-4,u.y-8); ctx.closePath(); ctx.fill();
+    ctx.fillStyle=c; ctx.fillRect(u.x-2,u.y-3,4,2);
+    ctx.fillStyle='#f0c898'; ctx.beginPath(); ctx.arc(u.x,u.y-11+bob*0.3,3.5,0,7); ctx.fill();
+    // staff
+    ctx.strokeStyle='#5a3a10'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(u.x+5,u.y-12); ctx.lineTo(u.x+7,u.y+5); ctx.stroke();
+    ctx.fillStyle='#f0e040'; ctx.beginPath(); ctx.arc(u.x+5,u.y-13,1.8,0,7); ctx.fill();
+  } else if(u.type==='archer'){
+    ctx.fillStyle=c; ctx.fillRect(u.x-4,u.y-6+bob*0.3,8,9);
+    ctx.fillStyle='#3a6a20'; ctx.fillRect(u.x-5,u.y-3,10,2);
+    ctx.fillStyle='#f0c898'; ctx.beginPath(); ctx.arc(u.x,u.y-10+bob*0.3,3.5,0,7); ctx.fill();
+    ctx.strokeStyle='#5a3a10'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(u.x+6,u.y,5,-Math.PI/2,Math.PI/2); ctx.stroke();
+  } else if(u.type==='cavalry'){
+    // horse body
+    ctx.fillStyle='#5a3818'; ctx.beginPath(); ctx.ellipse(u.x,u.y+2,12,6,0,0,7); ctx.fill();
+    ctx.fillStyle='#5a3818'; ctx.fillRect(u.x+8,u.y-6,5,8);
+    // rider
+    ctx.fillStyle=c; ctx.fillRect(u.x-3,u.y-10+bob*0.3,7,8);
+    ctx.fillStyle='#f0c898'; ctx.beginPath(); ctx.arc(u.x,u.y-13+bob*0.3,3,0,7); ctx.fill();
+    ctx.strokeStyle='#ddd'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(u.x+5,u.y-6); ctx.lineTo(u.x+12,u.y-12); ctx.stroke();
+  } else if(u.type==='ram'){
+    ctx.fillStyle='#3a2810'; ctx.fillRect(u.x-14,u.y-6,28,14);
+    ctx.fillStyle='#5a3818'; ctx.fillRect(u.x-16,u.y-2,32,5);
+    ctx.fillStyle='#888'; ctx.beginPath(); ctx.arc(u.x+16,u.y+2,4,0,7); ctx.fill();
+    // wheels
+    ctx.fillStyle='#1a1008'; ctx.beginPath(); ctx.arc(u.x-9,u.y+9,3,0,7); ctx.fill(); ctx.beginPath(); ctx.arc(u.x+9,u.y+9,3,0,7); ctx.fill();
+  }
+  // selection ring
+  if(selected.includes(u)){
+    ctx.strokeStyle='#80ff60'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.ellipse(u.x,u.y+8,10,4,0,0,7); ctx.stroke();
+  }
+  // hp bar if hurt
+  if(u.hp<u.maxhp){
+    ctx.fillStyle='#400'; ctx.fillRect(u.x-8,u.y-16,16,2);
+    ctx.fillStyle='#3c3'; ctx.fillRect(u.x-8,u.y-16,16*(u.hp/u.maxhp),2);
+  }
+}
+
+function drawCountryHouse(b,c,ac){
+  const x=b.x, y=b.y;
+  const name=b.owner.country.name;
+  switch(name){
+    case 'Bangladesh': {
+      // Tin-roof rural cottage: bamboo walls, corrugated tin roof
+      ctx.fillStyle='#b89868'; ctx.fillRect(x-18,y-4,36,20); // bamboo wall
+      ctx.strokeStyle='#6a4828'; ctx.lineWidth=1;
+      for(let i=-3;i<=3;i++){ ctx.beginPath(); ctx.moveTo(x+i*5,y-4); ctx.lineTo(x+i*5,y+16); ctx.stroke(); }
+      // tin roof (slanted, silver/red)
+      ctx.fillStyle='#9aa0a8'; ctx.beginPath(); ctx.moveTo(x-22,y-4); ctx.lineTo(x-14,y-20); ctx.lineTo(x+14,y-20); ctx.lineTo(x+22,y-4); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle='#5a6068'; for(let i=0;i<5;i++){ ctx.beginPath(); ctx.moveTo(x-22+i*9,y-4); ctx.lineTo(x-14+i*7,y-20); ctx.stroke(); }
+      ctx.fillStyle=c; ctx.fillRect(x-22,y-6,44,2);
+      ctx.fillStyle='#2a1808'; ctx.fillRect(x-3,y+6,6,10);
+      break;
+    }
+    case 'Pakistan': {
+      // Mud-brick flat-roof + small dome
+      ctx.fillStyle='#d8b888'; ctx.fillRect(x-20,y-12,40,28);
+      ctx.fillStyle='#a88858'; ctx.fillRect(x-20,y-14,40,3); // flat roof edge
+      // small dome
+      ctx.fillStyle=c; ctx.beginPath(); ctx.arc(x,y-14,8,Math.PI,0); ctx.fill();
+      ctx.fillStyle=ac; ctx.fillRect(x-1,y-26,2,4);
+      // arched door
+      ctx.fillStyle='#2a1808'; ctx.beginPath(); ctx.moveTo(x-4,y+16); ctx.lineTo(x-4,y+4); ctx.arc(x,y+4,4,Math.PI,0); ctx.lineTo(x+4,y+16); ctx.closePath(); ctx.fill();
+      // window
+      ctx.fillStyle='#3a3020'; ctx.fillRect(x-14,y-6,5,5); ctx.fillRect(x+9,y-6,5,5);
+      break;
+    }
+    case 'Sri Lanka': {
+      // Clay-tile pitched roof, white walls
+      ctx.fillStyle='#f0e8d0'; ctx.fillRect(x-18,y-4,36,20);
+      // tile roof (terracotta)
+      ctx.fillStyle='#b04820'; ctx.beginPath(); ctx.moveTo(x-22,y-4); ctx.lineTo(x,y-22); ctx.lineTo(x+22,y-4); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle='#7a2810'; ctx.lineWidth=1;
+      for(let i=0;i<6;i++){ ctx.beginPath(); ctx.arc(x-18+i*7,y-6,3,Math.PI,0); ctx.stroke(); }
+      ctx.fillStyle=c; ctx.fillRect(x-3,y-22,6,4); // chimney/finial
+      ctx.fillStyle='#5a3018'; ctx.fillRect(x-3,y+4,6,12);
+      break;
+    }
+    case 'Bhutan': {
+      // Dzong-style: thick walls, ornate trim, sloped wood roof
+      ctx.fillStyle='#f0e8d8'; ctx.fillRect(x-20,y-8,40,24);
+      // painted band
+      ctx.fillStyle=c; ctx.fillRect(x-20,y-2,40,3);
+      ctx.fillStyle=ac; ctx.fillRect(x-20,y+1,40,1);
+      // wide overhanging wood roof
+      ctx.fillStyle='#6a3818'; ctx.fillRect(x-24,y-14,48,6);
+      ctx.fillStyle='#4a2810'; ctx.fillRect(x-24,y-8,48,2);
+      // window grilles
+      ctx.fillStyle='#3a2010'; ctx.fillRect(x-12,y+4,7,7); ctx.fillRect(x+5,y+4,7,7);
+      ctx.strokeStyle='#d8a040'; ctx.lineWidth=0.8;
+      ctx.strokeRect(x-12,y+4,7,7); ctx.strokeRect(x+5,y+4,7,7);
+      // door
+      ctx.fillStyle='#2a1808'; ctx.fillRect(x-3,y+9,6,7);
+      break;
+    }
+    case 'China': {
+      // Pagoda-style upturned eaves, red walls
+      ctx.fillStyle='#a82820'; ctx.fillRect(x-16,y-2,32,18);
+      // upturned roof
+      ctx.fillStyle=c; ctx.beginPath();
+      ctx.moveTo(x-22,y-2);
+      ctx.quadraticCurveTo(x-26,y-6,x-20,y-8);
+      ctx.lineTo(x,y-22);
+      ctx.lineTo(x+20,y-8);
+      ctx.quadraticCurveTo(x+26,y-6,x+22,y-2);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle=ac; ctx.fillRect(x-2,y-24,4,4);
+      // round window
+      ctx.fillStyle='#f0d080'; ctx.beginPath(); ctx.arc(x,y+6,3,0,7); ctx.fill();
+      ctx.fillStyle='#2a1808'; ctx.fillRect(x-3,y+10,6,6);
+      break;
+    }
+    case 'Nepal': {
+      // Newari brick + carved wood window, tiered roof
+      ctx.fillStyle='#8a4828'; ctx.fillRect(x-18,y-4,36,20); // brick
+      // brick lines
+      ctx.strokeStyle='#5a2810'; ctx.lineWidth=0.5;
+      for(let i=0;i<5;i++){ ctx.beginPath(); ctx.moveTo(x-18,y-4+i*4); ctx.lineTo(x+18,y-4+i*4); ctx.stroke(); }
+      // tiered wood roof
+      ctx.fillStyle='#5a3010'; ctx.fillRect(x-22,y-10,44,6);
+      ctx.fillStyle=c; ctx.beginPath(); ctx.moveTo(x-18,y-10); ctx.lineTo(x,y-22); ctx.lineTo(x+18,y-10); ctx.closePath(); ctx.fill();
+      // ornate window
+      ctx.fillStyle='#d8a040'; ctx.fillRect(x-6,y+2,12,8);
+      ctx.fillStyle='#2a1808'; ctx.fillRect(x-4,y+4,3,4); ctx.fillRect(x+1,y+4,3,4);
+      break;
+    }
+    case 'British': {
+      // Tudor cottage: white plaster + dark timber, thatched/shingle roof
+      ctx.fillStyle='#f0ead8'; ctx.fillRect(x-18,y-4,36,20);
+      // timber framing
+      ctx.strokeStyle='#2a1808'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(x-18,y+8); ctx.lineTo(x+18,y+8); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x-12,y-4); ctx.lineTo(x-12,y+16); ctx.moveTo(x+12,y-4); ctx.lineTo(x+12,y+16); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x-18,y-4); ctx.lineTo(x,y+8); ctx.lineTo(x+18,y-4); ctx.stroke();
+      // dark slate roof
+      ctx.fillStyle='#3a3a3a'; ctx.beginPath(); ctx.moveTo(x-22,y-4); ctx.lineTo(x,y-22); ctx.lineTo(x+22,y-4); ctx.closePath(); ctx.fill();
+      // chimney
+      ctx.fillStyle='#7a2820'; ctx.fillRect(x+8,y-22,5,8);
+      ctx.fillStyle=c; ctx.fillRect(x-3,y+10,6,6);
+      break;
+    }
+    case 'India': {
+      // Haveli: ornate, jali windows, domed pavilion (chhatri)
+      ctx.fillStyle='#e8c890'; ctx.fillRect(x-20,y-6,40,22);
+      // jharokha (projecting balcony)
+      ctx.fillStyle=c; ctx.fillRect(x-12,y-2,24,6);
+      ctx.fillStyle=ac; ctx.fillRect(x-12,y+4,24,2);
+      // small chhatri (domed pavilion)
+      ctx.fillStyle='#d8b870'; ctx.fillRect(x-6,y-14,12,8);
+      ctx.fillStyle=c; ctx.beginPath(); ctx.arc(x,y-14,7,Math.PI,0); ctx.fill();
+      ctx.fillStyle=ac; ctx.fillRect(x-1,y-24,2,3);
+      // jali windows
+      ctx.fillStyle='#5a3818'; ctx.fillRect(x-16,y+6,5,7); ctx.fillRect(x+11,y+6,5,7);
+      // arched door
+      ctx.fillStyle='#2a1808'; ctx.beginPath(); ctx.moveTo(x-4,y+16); ctx.lineTo(x-4,y+8); ctx.arc(x,y+8,4,Math.PI,0); ctx.lineTo(x+4,y+16); ctx.closePath(); ctx.fill();
+      break;
+    }
+    default: {
+      ctx.fillStyle='#7a5828'; ctx.fillRect(x-18,y-6,36,22);
+      ctx.fillStyle=c; ctx.beginPath(); ctx.moveTo(x-22,y-6); ctx.lineTo(x,y-24); ctx.lineTo(x+22,y-6); ctx.closePath(); ctx.fill();
+      ctx.fillStyle='#2a1808'; ctx.fillRect(x-3,y+4,6,12);
+    }
+  }
+}
+
+function drawBuilding(b){
+  const c=b.owner.country.color, ac=b.owner.country.accent;
+  ctx.fillStyle='rgba(0,0,0,0.4)';
+  ctx.beginPath(); ctx.ellipse(b.x,b.y+b.r*0.6,b.r,b.r*0.3,0,0,7); ctx.fill();
+  ctx.save();
+  if(b.built<1) ctx.globalAlpha=0.5+b.built*0.5;
+  switch(b.type){
+    case 'townhall': {
+      // base
+      ctx.fillStyle='#6a4a20'; ctx.fillRect(b.x-40,b.y-15,80,40);
+      // roof
+      ctx.fillStyle=c; ctx.beginPath(); ctx.moveTo(b.x-46,b.y-15); ctx.lineTo(b.x,b.y-50); ctx.lineTo(b.x+46,b.y-15); ctx.closePath(); ctx.fill();
+      // door
+      ctx.fillStyle='#2a1808'; ctx.fillRect(b.x-7,b.y+5,14,20);
+      // flag
+      ctx.strokeStyle='#3a2810'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(b.x,b.y-50); ctx.lineTo(b.x,b.y-70); ctx.stroke();
+      ctx.fillStyle=c; ctx.fillRect(b.x,b.y-70,14,8);
+      ctx.fillStyle=ac; ctx.fillRect(b.x+1,b.y-68,4,4);
+      break;
+    }
+    case 'stable': {
+      ctx.fillStyle='#6a4828'; ctx.fillRect(b.x-28,b.y-12,56,30);
+      ctx.fillStyle=c; ctx.fillRect(b.x-28,b.y-20,56,8);
+      ctx.fillStyle='#2a1808'; ctx.fillRect(b.x-6,b.y,12,18);
+      ctx.fillStyle='#d8a060'; ctx.fillText && ctx.fillText('🐎',b.x-8,b.y+12);
+      break;
+    }
+    case 'siege': {
+      ctx.fillStyle='#4a4030'; ctx.fillRect(b.x-30,b.y-14,60,32);
+      ctx.fillStyle=c; ctx.fillRect(b.x-30,b.y-22,60,8);
+      ctx.strokeStyle='#bbb'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(b.x,b.y+4,10,0,Math.PI*2); ctx.stroke();
+      break;
+    }
+    case 'monastery': {
+      ctx.fillStyle='#d8d0b8'; ctx.fillRect(b.x-22,b.y-10,44,28);
+      ctx.fillStyle=c; ctx.beginPath(); ctx.moveTo(b.x-26,b.y-10); ctx.lineTo(b.x,b.y-30); ctx.lineTo(b.x+26,b.y-10); ctx.closePath(); ctx.fill();
+      ctx.fillStyle='#5a3018'; ctx.fillRect(b.x-2,b.y-26,4,12); ctx.fillRect(b.x-6,b.y-22,12,4);
+      break;
+    }
+    case 'house': {
+      drawCountryHouse(b,c,ac);
+      break;
+    }
+    case 'farm': {
+      ctx.fillStyle='#5a4018'; ctx.fillRect(b.x-22,b.y-18,44,40);
+      ctx.fillStyle='#c8a040';
+      for(let i=-2;i<=2;i++){ ctx.fillRect(b.x-20,b.y-15+i*8,40,3); }
+      ctx.strokeStyle='#3a2810'; ctx.lineWidth=1; ctx.strokeRect(b.x-22,b.y-18,44,40);
+      break;
+    }
+    case 'barracks': {
+      ctx.fillStyle='#5a4a30'; ctx.fillRect(b.x-26,b.y-14,52,32);
+      ctx.fillStyle=c; ctx.fillRect(b.x-26,b.y-22,52,8);
+      // crossed swords
+      ctx.strokeStyle='#bbb'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(b.x-8,b.y-4); ctx.lineTo(b.x+8,b.y+8); ctx.moveTo(b.x+8,b.y-4); ctx.lineTo(b.x-8,b.y+8); ctx.stroke();
+      break;
+    }
+    case 'tower': {
+      ctx.fillStyle='#8a8478'; ctx.fillRect(b.x-12,b.y-30,24,46);
+      ctx.fillStyle='#5a564e'; ctx.fillRect(b.x-14,b.y-34,28,6);
+      // crenellations
+      for(let i=-1;i<=1;i++){ ctx.fillRect(b.x-12+i*8,b.y-38,5,4); }
+      ctx.fillStyle=c; ctx.fillRect(b.x-3,b.y-50,2,16);
+      ctx.fillStyle=ac; ctx.fillRect(b.x-3,b.y-50,8,4);
+      break;
+    }
+    case 'gate': {
+      // pillars + arch
+      ctx.fillStyle='#5a4828'; ctx.fillRect(b.x-22,b.y-22,8,40);
+      ctx.fillRect(b.x+14,b.y-22,8,40);
+      ctx.fillStyle=c; ctx.fillRect(b.x-22,b.y-28,44,8);
+      ctx.fillStyle='#2a1808'; ctx.fillRect(b.x-14,b.y-18,28,32);
+      // banner
+      ctx.fillStyle=ac; ctx.fillRect(b.x-3,b.y-26,6,10);
+      break;
+    }
+  }
+  ctx.restore();
+  if(b.built<1){
+    // scaffold
+    ctx.strokeStyle='#a08040'; ctx.lineWidth=1;
+    ctx.strokeRect(b.x-b.r,b.y-b.r,b.r*2,b.r*2);
+    ctx.fillStyle='#0008'; ctx.fillRect(b.x-20,b.y+b.r+2,40,4);
+    ctx.fillStyle='#fc0'; ctx.fillRect(b.x-20,b.y+b.r+2,40*b.built,4);
+  }
+  if(selected.includes(b)){
+    ctx.strokeStyle='#80ff60'; ctx.lineWidth=2; ctx.strokeRect(b.x-b.r,b.y-b.r,b.r*2,b.r*2);
+  }
+  if(b.hp<b.maxhp){
+    ctx.fillStyle='#400'; ctx.fillRect(b.x-20,b.y-b.r-8,40,3);
+    ctx.fillStyle='#3c3'; ctx.fillRect(b.x-20,b.y-b.r-8,40*(b.hp/b.maxhp),3);
+  }
+}
+
+function render(){
+  drawWorld();
+  ctx.save(); ctx.translate(-cam.x,-cam.y);
+  // Z-sorted entities
+  const ents=[
+    ...trees.map(o=>({...o,_d:'tree',_o:o})),
+    ...stones.map(o=>({...o,_d:'stone',_o:o})),
+    ...golds.map(o=>({...o,_d:'gold',_o:o})),
+    ...animals.map(o=>({...o,_d:'animal',_o:o})),
+    ...buildings.map(o=>({...o,_d:'bld',_o:o})),
+    ...units.map(o=>({...o,_d:'unit',_o:o})),
+  ];
+  ents.sort((a,b)=>a.y-b.y);
+  // corpses below
+  corpses.forEach(c=>{ ctx.fillStyle=`rgba(80,20,20,${1-c.t/600})`; ctx.beginPath(); ctx.arc(c.x,c.y,5,0,7); ctx.fill(); });
+  ents.forEach(e=>{
+    if(e._d==='tree') drawTree(e._o);
+    else if(e._d==='stone') drawStone(e._o);
+    else if(e._d==='gold') drawGold(e._o);
+    else if(e._d==='animal') drawAnimal(e._o);
+    else if(e._d==='bld') drawBuilding(e._o);
+    else drawUnit(e._o);
+  });
+  // projectiles
+  projectiles.forEach(p=>{
+    if(p.kind==='arrow'){ ctx.strokeStyle='#eed'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(p.cx-4,p.cy); ctx.lineTo(p.cx+4,p.cy); ctx.stroke(); }
+    else { ctx.fillStyle='rgba(180,220,255,0.8)'; ctx.beginPath(); ctx.arc(p.cx,p.cy,4,0,7); ctx.fill(); }
+  });
+  // particles
+  particles.forEach(p=>{
+    const k=1-p.t/30;
+    if(p.kind==='hit'){ ctx.fillStyle=`rgba(255,200,40,${k})`; ctx.beginPath(); ctx.arc(p.x,p.y,6*(1-k)+2,0,7); ctx.fill(); }
+    else if(p.kind==='heal'){ ctx.fillStyle=`rgba(120,255,140,${k})`; ctx.beginPath(); ctx.arc(p.x,p.y-p.t,4,0,7); ctx.fill(); }
+    else { ctx.strokeStyle=p.kind==='red'?`rgba(255,80,80,${k})`:p.kind==='green'?`rgba(120,255,120,${k})`:`rgba(120,200,255,${k})`; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(p.x,p.y,p.t,0,7); ctx.stroke(); }
+  });
+  // birds (above all)
+  birds.forEach(drawBird);
+  ctx.restore();
+
+  // build preview
+  if(buildMode){
+    const d=BLD_DEF[buildMode];
+    ctx.strokeStyle=onRiver(mouse.x+cam.x,mouse.y+cam.y)?'#f44':'#6f6';
+    ctx.setLineDash([4,4]); ctx.strokeRect(mouse.x-d.r,mouse.y-d.r,d.r*2,d.r*2); ctx.setLineDash([]);
+  }
+  // selection box
+  if(selectionBox){
+    const b=selectionBox;
+    ctx.strokeStyle='#9f9'; ctx.lineWidth=1;
+    ctx.strokeRect(Math.min(b.x1,b.x2),Math.min(b.y1,b.y2),Math.abs(b.x2-b.x1),Math.abs(b.y2-b.y1));
+    ctx.fillStyle='rgba(120,255,120,0.1)';
+    ctx.fillRect(Math.min(b.x1,b.x2),Math.min(b.y1,b.y2),Math.abs(b.x2-b.x1),Math.abs(b.y2-b.y1));
+  }
+  // night veil
+  const nightAmt=Math.max(0,Math.sin(dayTime*Math.PI*2));
+  if(nightAmt>0){ ctx.fillStyle=`rgba(10,10,40,${nightAmt*0.35})`; ctx.fillRect(0,0,innerWidth,innerHeight); }
+
+  // flash
+  if(flashT>0){
+    ctx.fillStyle=`rgba(0,0,0,0.6)`;
+    ctx.fillRect(innerWidth/2-160,80,320,30);
+    ctx.fillStyle='#f0c060'; ctx.font='14px Cinzel,serif'; ctx.textAlign='center';
+    ctx.fillText(flashMsg,innerWidth/2,100);
+  }
+
+  // minimap
+  mctx.fillStyle='#0a0d06'; mctx.fillRect(0,0,200,160);
+  // river
+  mctx.strokeStyle='#2a6a9a'; mctx.lineWidth=3;
+  mctx.beginPath();
+  RIVER.forEach((r,i)=>{ const x=r.x/W*200,y=r.y/H*160; if(i===0)mctx.moveTo(x,y); else mctx.lineTo(x,y); });
+  mctx.stroke();
+  // entities
+  buildings.forEach(b=>{ mctx.fillStyle=b.owner.country.color; mctx.fillRect(b.x/W*200-2,b.y/H*160-2,4,4); });
+  units.forEach(u=>{ mctx.fillStyle=u.owner.country.color; mctx.fillRect(u.x/W*200-1,u.y/H*160-1,2,2); });
+  // viewport
+  mctx.strokeStyle='#fff'; mctx.lineWidth=1;
+  mctx.strokeRect(cam.x/W*200,cam.y/H*160,innerWidth/W*200,innerHeight/H*160);
+}
+
+function mmJump(cx,cy){
+  const r=mm.getBoundingClientRect();
+  const mw=r.width, mh=r.height;
+  const mx=(cx-r.left)/mw*W, my=(cy-r.top)/mh*H;
+  cam.x=mx-innerWidth/2; cam.y=my-innerHeight/2;
+}
+mm.addEventListener('mousedown',e=>mmJump(e.clientX,e.clientY));
+mm.addEventListener('touchstart',e=>{e.preventDefault();const t=e.touches[0];mmJump(t.clientX,t.clientY)},{passive:false});
+mm.addEventListener('touchmove',e=>{e.preventDefault();const t=e.touches[0];mmJump(t.clientX,t.clientY)},{passive:false});
+
+//================ MOBILE TOUCH CONTROLS ================
+// Mode toggle: 'select' (tap=select / drag=box-select) or 'order' (tap=move/attack/gather)
+let touchMode='select';
+const abMode=document.getElementById('abMode');
+function setMode(m){touchMode=m; abMode.innerHTML = m==='select'?'<span>👆</span>SEL':'<span>🎯</span>ORD'; abMode.classList.toggle('act',m==='order');}
+abMode && (abMode.onclick=()=>setMode(touchMode==='select'?'order':'select'));
+document.getElementById('abAtk').onclick=()=>{ window._attackMove=true; flash('Attack-move: tap target'); setMode('order'); };
+document.getElementById('abStop').onclick=()=>{ selected.forEach(u=>{if(u.type){u.tx=null;u.target=null;u.task=null}}); };
+document.getElementById('abHome').onclick=()=>{
+  const human=players.find(p=>p.isHuman);
+  const th=buildings.find(b=>b.owner===human&&b.type==='townhall');
+  if(th){cam.x=th.x-innerWidth/2;cam.y=th.y-innerHeight/2}
+};
+document.getElementById('abAll').onclick=()=>{
+  const human=players.find(p=>p.isHuman);
+  selected = units.filter(u=>u.owner===human && (u.type==='soldier'||u.type==='monk'));
+  if(selected.length===0) selected = units.filter(u=>u.owner===human);
+  updateSelInfo();
+};
+
+// Virtual joystick for camera pan
+const pad=document.getElementById('touchPad'), nub=document.getElementById('touchNub');
+let padVec={x:0,y:0}, padActive=false;
+function padMove(cx,cy){
+  const r=pad.getBoundingClientRect();
+  const ccx=r.left+r.width/2, ccy=r.top+r.height/2;
+  let dx=cx-ccx, dy=cy-ccy;
+  const max=r.width/2-10, d=Math.hypot(dx,dy);
+  if(d>max){dx=dx/d*max; dy=dy/d*max}
+  nub.style.left=(r.width/2-25+dx)+'px'; nub.style.top=(r.height/2-25+dy)+'px';
+  padVec.x=dx/max; padVec.y=dy/max;
+}
+function padReset(){padActive=false;padVec.x=0;padVec.y=0;nub.style.left='40px';nub.style.top='40px';}
+pad.addEventListener('touchstart',e=>{e.preventDefault();padActive=true;const t=e.touches[0];padMove(t.clientX,t.clientY)},{passive:false});
+pad.addEventListener('touchmove',e=>{e.preventDefault();if(!padActive)return;const t=e.touches[0];padMove(t.clientX,t.clientY)},{passive:false});
+pad.addEventListener('touchend',e=>{e.preventDefault();padReset()},{passive:false});
+pad.addEventListener('touchcancel',e=>{padReset()});
+
+// Camera pan from joystick + edge
+setInterval(()=>{
+  if(padActive){ cam.x += padVec.x*14; cam.y += padVec.y*14; }
+},16);
+
+// Touch on canvas: tap=select or order based on mode; long-press=order; two-finger=pan
+let tStart=null, tMoved=false, tLong=null, panTouch=null;
+cv.addEventListener('touchstart',e=>{
+  if(e.touches.length===2){
+    e.preventDefault();
+    const a=e.touches[0],b=e.touches[1];
+    panTouch={x:(a.clientX+b.clientX)/2,y:(a.clientY+b.clientY)/2};
+    tStart=null; if(tLong){clearTimeout(tLong);tLong=null}
+    return;
+  }
+  const t=e.touches[0];
+  tStart={x:t.clientX,y:t.clientY,t:Date.now()};
+  tMoved=false;
+  selectionBox=null;
+  // long-press => issue order at point
+  tLong=setTimeout(()=>{
+    if(tStart && !tMoved){
+      if(buildMode){
+        tryBuild(buildMode, tStart.x+cam.x, tStart.y+cam.y);
+        buildMode=null;
+        document.querySelectorAll('#bottom .b').forEach(b=>b.classList.remove('act'));
+      } else {
+        issueOrder(tStart.x+cam.x, tStart.y+cam.y, false);
+      }
+      tStart=null;
+    }
+  }, 380);
+},{passive:true});
+cv.addEventListener('touchmove',e=>{
+  if(panTouch && e.touches.length===2){
+    e.preventDefault();
+    const a=e.touches[0],b=e.touches[1];
+    const cx=(a.clientX+b.clientX)/2, cy=(a.clientY+b.clientY)/2;
+    cam.x -= (cx-panTouch.x); cam.y -= (cy-panTouch.y);
+    panTouch={x:cx,y:cy};
+    return;
+  }
+  if(!tStart) return;
+  const t=e.touches[0];
+  const dx=t.clientX-tStart.x, dy=t.clientY-tStart.y;
+  if(Math.hypot(dx,dy)>10){
+    tMoved=true;
+    if(tLong){clearTimeout(tLong);tLong=null}
+    if(touchMode==='select' && !buildMode){
+      selectionBox={x1:tStart.x,y1:tStart.y,x2:t.clientX,y2:t.clientY};
+    }
+  }
+},{passive:false});
+cv.addEventListener('touchend',e=>{
+  if(panTouch){panTouch=null;return}
+  if(tLong){clearTimeout(tLong);tLong=null}
+  if(!tStart) return;
+  const dur=Date.now()-tStart.t;
+  if(selectionBox){
+    // finalize box select
+    const human=players.find(p=>p.isHuman);
+    const b=selectionBox;
+    const x1=Math.min(b.x1,b.x2),y1=Math.min(b.y1,b.y2);
+    const x2=Math.max(b.x1,b.x2),y2=Math.max(b.y1,b.y2);
+    selected = units.filter(u=>u.owner===human && u.x>=x1+cam.x && u.x<=x2+cam.x && u.y>=y1+cam.y && u.y<=y2+cam.y);
+    selectionBox=null; updateSelInfo();
+  } else if(!tMoved && dur<380){
+    // tap: build > order (in order-mode) > select (default)
+    if(buildMode){
+      tryBuild(buildMode, tStart.x+cam.x, tStart.y+cam.y);
+      buildMode=null;
+      document.querySelectorAll('#bottom .b').forEach(b=>b.classList.remove('act'));
+    } else if(touchMode==='order' || window._attackMove){
+      issueOrder(tStart.x+cam.x, tStart.y+cam.y, false);
+      window._attackMove=false;
+    } else {
+      // single-tap select
+      const human=players.find(p=>p.isHuman);
+      const wx=tStart.x+cam.x, wy=tStart.y+cam.y;
+      let pick=null,bd=null;
+      for(const u of units){ if(u.owner===human && Math.hypot(u.x-wx,u.y-wy)<18){pick=u;break} }
+      if(!pick) for(const bb of buildings){ if(bb.owner===human && Math.hypot(bb.x-wx,bb.y-wy)<bb.r){bd=bb;break} }
+      // if tapped enemy/resource and units selected -> issue order instead
+      if(!pick && !bd && selected.length>0){
+        issueOrder(wx,wy,false);
+      } else {
+        selected = pick?[pick]:(bd?[bd]:[]);
+        updateSelInfo();
+        if(selected.length>0) setMode('order'); // auto-switch so next tap commands
+      }
+    }
+  }
+  tStart=null; tMoved=false;
+},{passive:true});
+cv.addEventListener('touchcancel',e=>{tStart=null;tMoved=false;selectionBox=null;if(tLong){clearTimeout(tLong);tLong=null}});
+
+
+function loop(){ if(!ended)update(); render(); requestAnimationFrame(loop); }
+</script>
+</body>
+</html>
