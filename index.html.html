@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -44,17 +45,27 @@ button.b.act{background:linear-gradient(180deg,#a07020,#604010);box-shadow:0 0 1
 #actBar .ab{width:58px;height:58px;border-radius:50%;background:linear-gradient(180deg,#5a3c14,#2c1c08);border:2px solid #8a6a20;color:#f0d080;font-size:11px;font-family:'Cinzel',serif;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-direction:column;line-height:1;padding:0;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.6)}
 #actBar .ab.act{background:linear-gradient(180deg,#c08020,#604010);box-shadow:0 0 14px #f0c060}
 #actBar .ab span{font-size:18px}
+.popover{position:absolute;inset:0;background:rgba(0,0,0,.85);z-index:40;display:none;align-items:center;justify-content:center;padding:20px}
+.popover.show{display:flex}
+.popover .panel{background:linear-gradient(180deg,#2c1c08,#1a1408);border:2px solid #8a6a20;border-radius:8px;padding:14px;max-width:520px;width:100%;max-height:85vh;overflow:auto;box-shadow:0 0 32px #c08020}
+.popover h3{font-family:'Cinzel',serif;color:#f0c060;letter-spacing:3px;margin-bottom:10px;text-align:center;font-size:18px}
+.popover .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.popover .grid button{padding:12px 8px;font-size:13px;text-align:left}
+.popover .close{margin-top:10px;width:100%;padding:10px;background:linear-gradient(180deg,#7a2818,#3c1408);color:#f0d080;border:1px solid #c04020;border-radius:4px;font-family:inherit;font-size:14px}
 @media (max-width:900px),(pointer:coarse){
   #hud{font-size:11px;padding:4px 6px;gap:6px}
   .chip{padding:2px 5px;font-size:11px}
-  #bottom{font-size:11px;gap:4px;padding:6px 4px;overflow-x:auto;flex-wrap:nowrap}
+  #bottom{font-size:11px;gap:4px;padding:6px 4px;flex-wrap:nowrap;justify-content:flex-start}
+  #bottom .b{display:none!important}
+  #sel{display:block;width:100%}
   button.b{padding:8px 8px;font-size:11px;min-width:auto;flex-shrink:0}
-  #minimap{width:130px;height:104px;bottom:64px;right:6px}
+  #minimap{width:130px;height:104px;bottom:10px;right:6px}
   .help{display:none!important}
   #sel{min-width:auto;font-size:10px;flex-basis:100%}
   #menu h1{font-size:28px;letter-spacing:3px}
   .countries{grid-template-columns:repeat(2,1fr)}
   .modes{grid-template-columns:1fr}
+  .popover .grid{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -65,13 +76,10 @@ button.b.act{background:linear-gradient(180deg,#a07020,#604010);box-shadow:0 0 1
 <div id="menu">
   <h1>KINGDOM OF VILLAGES</h1>
   <div style="color:#a89868;letter-spacing:2px;font-size:13px">A Prehistoric-Style Real-Time Strategy</div>
-
   <h2>CHOOSE YOUR NATION</h2>
   <div class="countries" id="countryGrid"></div>
-
   <h2>BATTLE MODE</h2>
   <div class="modes" id="modeGrid"></div>
-
   <button id="startBtn">BEGIN BATTLE</button>
 </div>
 
@@ -81,6 +89,7 @@ button.b.act{background:linear-gradient(180deg,#a07020,#604010);box-shadow:0 0 1
   <span class="chip">🪨 <b id="rStone">0</b></span>
   <span class="chip">⛃ <b id="rGold">0</b></span>
   <span class="chip">🍖 <b id="rFood">0</b></span>
+  <span class="chip">🐟 <b id="rFish">0</b></span>
   <span class="chip">👥 <b id="rPop">0</b>/<b id="rCap">0</b></span>
   <span class="chip" id="rNation"></span>
   <span class="chip" id="rDay">Day 1</span>
@@ -98,13 +107,18 @@ button.b.act{background:linear-gradient(180deg,#a07020,#604010);box-shadow:0 0 1
   <button class="b" data-build="monastery">⛪ Monastery (100W,40G)</button>
   <button class="b" data-build="tower">🗼 Tower (60S)</button>
   <button class="b" data-build="gate">🚪 Gate (50W,30S)</button>
+  <button class="b" data-build="dock">⚓ Dock (80W,40S)</button>
+  <button class="b" data-build="bridge">🌉 Bridge (60W,60S)</button>
   <button class="b" data-train="villager">+Villager (50F)</button>
   <button class="b" data-train="soldier">+Soldier (60F,20G)</button>
   <button class="b" data-train="archer">+Archer (40F,30G)</button>
   <button class="b" data-train="cavalry">+Cavalry (80F,60G)</button>
   <button class="b" data-train="ram">+Ram (100W,80G)</button>
   <button class="b" data-train="monk">+Monk (80F,40G)</button>
+  <button class="b" data-train="boat">+Transport Boat (80W)</button>
+  <button class="b" data-train="warship">+Warship (150W,80G)</button>
   <button class="b" id="btnAge">⬆ Advance Age (200F,100G)</button>
+  <button class="b" id="btnRaid" style="background:linear-gradient(180deg,#a02020,#601010);border-color:#f04040">⚔ RAID ENEMY!</button>
 </div>
 
 <canvas id="minimap" width="200" height="160" style="display:none"></canvas>
@@ -113,30 +127,39 @@ button.b.act{background:linear-gradient(180deg,#a07020,#604010);box-shadow:0 0 1
 LMB: Select / Box-select<br>
 RMB: Move / Attack / Gather<br>
 Shift+RMB: Queue<br>
-Click villager + tree/stone/gold/animal: assign work<br>
+Click villager + tree/stone/gold/animal/fish: assign work<br>
 A: Attack-move | S: Stop | H: Town Hall<br>
 Drag minimap to scroll
 </div>
 
 <div id="endScreen"><h1 id="endTitle"></h1><button class="b" onclick="location.reload()">Play Again</button></div>
-
-<!-- Mobile virtual joystick for camera panning -->
 <div id="touchPad"><div class="nub" id="touchNub"></div></div>
-
-<!-- Mobile action bar -->
 <div id="actBar">
+  <button class="ab" id="abBuild" title="Build menu"><span>🏠</span>BUILD</button>
+  <button class="ab" id="abTrain" title="Train menu"><span>👥</span>TRAIN</button>
   <button class="ab" id="abMode" title="Toggle mode"><span>👆</span>SEL</button>
   <button class="ab" id="abAtk" title="Attack-move"><span>⚔</span>ATK</button>
   <button class="ab" id="abStop" title="Stop"><span>✋</span>STOP</button>
   <button class="ab" id="abHome" title="Town Hall"><span>🏛</span>HOME</button>
   <button class="ab" id="abAll" title="Select all army"><span>👥</span>ALL</button>
+  <button class="ab" id="abRaid" title="Raid enemy" style="background:linear-gradient(180deg,#c02020,#601010);border-color:#f04040"><span>⚔</span>RAID</button>
 </div>
 
+<div class="popover" id="popBuild"><div class="panel">
+  <h3>BUILD</h3>
+  <div class="grid" id="popBuildGrid"></div>
+  <button class="close" data-close="popBuild">Cancel</button>
+</div></div>
+<div class="popover" id="popTrain"><div class="panel">
+  <h3>TRAIN / PRODUCE</h3>
+  <div class="grid" id="popTrainGrid"></div>
+  <button class="close" data-close="popTrain">Cancel</button>
+</div></div>
 </div>
 
 <script>
 //================ CONFIG ================
-const W=2400,H=1800; // world
+const W=2400,H=1800;
 const COUNTRIES=[
  {name:'Bangladesh',color:'#1a8a3a',accent:'#d04030'},
  {name:'Pakistan',  color:'#f0f0e8',accent:'#0a5a2a'},
@@ -163,11 +186,10 @@ const MODES=[
 
 let chosenCountry=0, chosenMode=0;
 
-// menu setup
 const cg=document.getElementById('countryGrid');
 COUNTRIES.forEach((c,i)=>{
   const d=document.createElement('div'); d.className='country'+(i===0?' sel':'');
-  d.innerHTML=`<div class="swatch" style="background:${c.color}"></div><b>${c.name}</b>`;
+  d.innerHTML='<div class="swatch" style="background:'+c.color+'"></div><b>'+c.name+'</b>';
   d.onclick=()=>{chosenCountry=i;[...cg.children].forEach(x=>x.classList.remove('sel'));d.classList.add('sel')};
   cg.appendChild(d);
 });
@@ -175,7 +197,7 @@ const mg=document.getElementById('modeGrid');
 MODES.forEach((m,i)=>{
   const d=document.createElement('div'); d.className='mode'+(i===0?' sel':'');
   const np=m.t.flat().length;
-  d.innerHTML=`<b>${m.n}</b> &mdash; ${np} players, ${m.t.length} teams`;
+  d.innerHTML='<b>'+m.n+'</b> &mdash; '+np+' players, '+m.t.length+' teams';
   d.onclick=()=>{chosenMode=i;[...mg.children].forEach(x=>x.classList.remove('sel'));d.classList.add('sel')};
   mg.appendChild(d);
 });
@@ -189,6 +211,7 @@ document.getElementById('startBtn').onclick=()=>{
   if(IS_TOUCH){
     document.getElementById('touchPad').style.display='block';
     document.getElementById('actBar').style.display='flex';
+    setupMobilePopups();
   }
   startGame();
 };
@@ -201,13 +224,14 @@ function resize(){cv.width=innerWidth;cv.height=innerHeight}
 addEventListener('resize',resize); resize();
 
 let cam={x:0,y:0};
-let players=[]; // {id,country,team,isHuman,res,units,buildings,cap}
-let units=[],buildings=[],trees=[],stones=[],golds=[],animals=[],birds=[],corpses=[];
+let players=[];
+// fishes: live IN the river
+let units=[],buildings=[],trees=[],stones=[],golds=[],animals=[],fishes=[],birds=[],corpses=[];
 let projectiles=[],particles=[];
 let selected=[];
 let selectionBox=null;
 let buildMode=null;
-let mouse={x:0,y:0,sx:0,sy:0,down:false,btn:0};
+let mouse={x:innerWidth/2,y:innerHeight/2,sx:0,sy:0,down:false,btn:0,active:false};
 let dayTime=0,gameTime=0;
 let ended=false;
 
@@ -215,7 +239,7 @@ function rand(a,b){return a+Math.random()*(b-a)}
 function dist(a,b){const dx=a.x-b.x,dy=a.y-b.y;return Math.hypot(dx,dy)}
 
 //================ WORLD GEN ================
-const RIVER=[]; // points along river
+const RIVER=[];
 function genRiver(){
   const segs=40;
   for(let i=0;i<=segs;i++){
@@ -238,28 +262,33 @@ function onRiver(x,y){
   return false;
 }
 
+// Get a random point ON the river
+function riverPoint(){
+  const idx=Math.floor(Math.random()*(RIVER.length-1));
+  const a=RIVER[idx],b=RIVER[idx+1];
+  const t=Math.random();
+  return {x:a.x+(b.x-a.x)*t, y:a.y+(b.y-a.y)*t};
+}
+
 function startGame(){
   genRiver();
   const mode=MODES[chosenMode];
-  // build players
   let pid=0;
   mode.t.forEach((team,ti)=>{
     team.forEach(slot=>{
-      const isHuman = (pid===0); // first slot = human
-      // assign country: human = chosenCountry, others rotate avoiding duplicates
+      const isHuman=(pid===0);
       let cidx;
       if(isHuman) cidx=chosenCountry;
       else { cidx=(chosenCountry+pid)%8; if(cidx===chosenCountry) cidx=(cidx+1)%8; }
       players.push({
         id:pid, country:COUNTRIES[cidx], team:ti, isHuman,
-        res:{wood:200,stone:120,gold:80,food:200}, cap:5, age:1,
+        res:{wood:200,stone:120,gold:80,food:200,fish:0}, cap:5, age:1,
         eliminated:false, ai:{lastBuild:0,lastTrain:0,lastAttack:0}
       });
       pid++;
     });
   });
 
-  // place starting positions around the map (avoid river)
   const N=players.length;
   const margin=260;
   const positions=[];
@@ -267,57 +296,71 @@ function startGame(){
     const ang=(i/N)*Math.PI*2 + Math.PI/N;
     let x=W/2+Math.cos(ang)*(Math.min(W,H)/2-margin);
     let y=H/2+Math.sin(ang)*(Math.min(W,H)/2-margin);
-    // avoid river
     let tries=0;
     while(onRiver(x,y) && tries<20){ y += (y<H/2?-40:40); tries++; }
     positions.push({x,y});
   }
 
-  // place TownHall + starting units per player
   players.forEach((p,i)=>{
     const pos=positions[i];
     addBuilding(p,'townhall',pos.x,pos.y);
-    // gate near front
     addBuilding(p,'gate',pos.x+40,pos.y+90);
     for(let k=0;k<4;k++) addUnit(p,'villager',pos.x+rand(-50,50),pos.y+rand(-50,50));
     for(let k=0;k<2;k++) addUnit(p,'soldier',pos.x+rand(-60,60),pos.y+rand(-60,60));
     addUnit(p,'monk',pos.x,pos.y-60);
   });
 
-  // resources
-  for(let i=0;i<260;i++){
+  // Trees: ~400
+  let treeCount=0;
+  for(let i=0;i<2000 && treeCount<400;i++){
     const x=rand(60,W-60),y=rand(60,H-60);
     if(onRiver(x,y)) continue;
     trees.push({x,y,hp:50,r:14,sway:Math.random()*Math.PI*2});
+    treeCount++;
   }
-  for(let i=0;i<70;i++){
+
+  // Stones: ~300
+  let stoneCount=0;
+  for(let i=0;i<2000 && stoneCount<300;i++){
     const x=rand(60,W-60),y=rand(60,H-60);
     if(onRiver(x,y)) continue;
     stones.push({x,y,hp:80,r:16});
+    stoneCount++;
   }
-  for(let i=0;i<35;i++){
+
+  // Gold: ~200
+  let goldCount=0;
+  for(let i=0;i<2000 && goldCount<200;i++){
     const x=rand(60,W-60),y=rand(60,H-60);
     if(onRiver(x,y)) continue;
     golds.push({x,y,hp:60,r:14});
+    goldCount++;
   }
-  // animals: deer / boar
-  for(let i=0;i<40;i++){
+
+  // Animals: ~150
+  for(let i=0;i<300;i++){
     const x=rand(60,W-60),y=rand(60,H-60);
-    if(onRiver(x,y)) continue;
+    if(onRiver(x,y)){i--;continue;}
     animals.push({x,y,vx:0,vy:0,hp:30,kind:Math.random()<0.6?'deer':'boar',
       dir:Math.random()*Math.PI*2,wander:0,fleeing:0});
+    if(animals.length>=150) break;
   }
+
+  // Fish: ~60, placed along the river
+  for(let i=0;i<60;i++){
+    const rp=riverPoint();
+    fishes.push({x:rp.x,y:rp.y,hp:20,dir:Math.random()*Math.PI*2,wander:Math.random()*60,swimT:Math.random()*Math.PI*2});
+  }
+
   // birds
   for(let i=0;i<25;i++){
     birds.push({x:rand(0,W),y:rand(0,H),vx:rand(-1,1),vy:rand(-0.5,0.5),flap:Math.random()*10});
   }
 
-  // center camera on human
   const hp=players.find(p=>p.isHuman);
   const myTH=buildings.find(b=>b.owner===hp&&b.type==='townhall');
   cam.x=myTH.x-innerWidth/2; cam.y=myTH.y-innerHeight/2;
   document.getElementById('rNation').textContent=hp.country.name;
-  // teams summary
   const teamStr=mode.t.map((t,i)=>'T'+(i+1)+':'+t.map(s=>players[mode.t.slice(0,i).flat().length+t.indexOf(s)]?.country.name||'?').join('+')).join(' | ');
   document.getElementById('rPlayers').textContent=teamStr;
 
@@ -332,6 +375,8 @@ const UNIT_DEF={
   cavalry: {hp:140,spd:2.4,atk:18,rng:18,sight:220,r:10},
   ram:     {hp:300,spd:0.9,atk:40,rng:22,sight:160,r:14},
   monk:    {hp:60,spd:1.5,atk:6,rng:120,sight:240,r:9,heal:true},
+  boat:    {hp:200,spd:1.6,atk:0,rng:0,sight:220,r:14,naval:true,cap:30},
+  warship: {hp:500,spd:1.4,atk:25,rng:200,sight:260,r:18,naval:true,ranged:true},
 };
 const BLD_DEF={
   townhall: {hp:1500,r:42,cost:{},cap:5,prov:'house',trains:['villager']},
@@ -343,6 +388,8 @@ const BLD_DEF={
   monastery:{hp:500,r:28,cost:{wood:100,gold:40},trains:['monk']},
   tower:    {hp:500,r:18,cost:{stone:60},atk:15,rng:180},
   gate:     {hp:800,r:20,cost:{wood:50,stone:30}},
+  dock:     {hp:600,r:30,cost:{wood:80,stone:40},trains:['boat','warship'],naval:true},
+  bridge:   {hp:600,r:28,cost:{wood:60,stone:60}},
 };
 function addUnit(p,type,x,y){
   const d=UNIT_DEF[type];
@@ -380,9 +427,10 @@ cv.addEventListener('mousedown',e=>{
 });
 cv.addEventListener('contextmenu',e=>e.preventDefault());
 cv.addEventListener('mousemove',e=>{
-  mouse.x=e.clientX; mouse.y=e.clientY;
+  mouse.x=e.clientX; mouse.y=e.clientY; mouse.active=true;
   if(selectionBox){selectionBox.x2=e.clientX;selectionBox.y2=e.clientY}
 });
+cv.addEventListener('mouseleave',()=>{mouse.active=false;});
 cv.addEventListener('mouseup',e=>{
   mouse.down=false;
   if(selectionBox){
@@ -391,7 +439,6 @@ cv.addEventListener('mouseup',e=>{
     const x2=Math.max(b.x1,b.x2),y2=Math.max(b.y1,b.y2);
     const human=players.find(p=>p.isHuman);
     if(Math.abs(x2-x1)<5 && Math.abs(y2-y1)<5){
-      // single click pick
       const wx=x1+cam.x, wy=y1+cam.y;
       let pick=null,bd=null;
       for(const u of units){ if(u.owner===human && Math.hypot(u.x-wx,u.y-wy)<14){pick=u;break} }
@@ -399,13 +446,10 @@ cv.addEventListener('mouseup',e=>{
         for(const bb of buildings){ if(bb.owner===human && Math.hypot(bb.x-wx,bb.y-wy)<bb.r){bd=bb;break} }
       }
       const villagersSel = selected.filter(s=>s.type==='villager' && s.owner===human);
-      // case 1: clicked own UNFINISHED building with villagers selected -> assist build
       if(bd && bd.built<1 && villagersSel.length>0){
         villagersSel.forEach(u=>{u.task={kind:'build',target:bd}; u.tx=bd.x; u.ty=bd.y; u.target=null;});
         particles.push({x:wx,y:wy,t:0,kind:'green'});
-        // keep current selection so player can keep ordering
       } else {
-        // case 2: check for enemy/resource/animal under cursor -> auto-issue order if any selected units
         const hasSelectedUnits = selected.some(s=>s.type && s.owner===human);
         let isOrderTarget = false;
         if(!pick && !bd && hasSelectedUnits){
@@ -415,10 +459,10 @@ cv.addEventListener('mouseup',e=>{
           if(!isOrderTarget) for(const s of stones){ if(Math.hypot(s.x-wx,s.y-wy)<s.r){isOrderTarget=true;break} }
           if(!isOrderTarget) for(const g of golds){ if(Math.hypot(g.x-wx,g.y-wy)<g.r){isOrderTarget=true;break} }
           if(!isOrderTarget) for(const a of animals){ if(Math.hypot(a.x-wx,a.y-wy)<10){isOrderTarget=true;break} }
+          if(!isOrderTarget) for(const f of fishes){ if(Math.hypot(f.x-wx,f.y-wy)<10){isOrderTarget=true;break} }
         }
         if(isOrderTarget){
           issueOrder(wx,wy,false);
-          // keep selection
         } else {
           selected = pick?[pick]:(bd?[bd]:[]);
         }
@@ -431,14 +475,13 @@ cv.addEventListener('mouseup',e=>{
   }
 });
 addEventListener('keydown',e=>{
-  if(e.key==='a'||e.key==='A'){ /* attack-move next click */ window._attackMove=true; }
+  if(e.key==='a'||e.key==='A'){ window._attackMove=true; }
   if(e.key==='s'||e.key==='S'){ selected.forEach(u=>{if(u.type){u.tx=null;u.target=null;u.task=null}}); }
   if(e.key==='h'||e.key==='H'){
     const human=players.find(p=>p.isHuman);
     const th=buildings.find(b=>b.owner===human&&b.type==='townhall');
     if(th){cam.x=th.x-innerWidth/2;cam.y=th.y-innerHeight/2}
   }
-  // edge scroll alt: arrows
   const sp=40;
   if(e.key==='ArrowLeft')cam.x-=sp;
   if(e.key==='ArrowRight')cam.x+=sp;
@@ -450,6 +493,7 @@ document.querySelectorAll('#bottom .b').forEach(btn=>{
   btn.onclick=()=>{
     const human=players.find(p=>p.isHuman);
     if(btn.id==='btnAge'){ tryAdvanceAge(human); return; }
+    if(btn.id==='btnRaid'){ raidNearestEnemy(human); return; }
     if(btn.dataset.build){
       buildMode=btn.dataset.build;
       document.querySelectorAll('#bottom .b').forEach(b=>b.classList.remove('act'));
@@ -465,18 +509,28 @@ function tryBuild(type,x,y){
   const human=players.find(p=>p.isHuman);
   const d=BLD_DEF[type];
   if(!d) return;
+  if((BLD_AGE[type]||1)>human.age){flash('Need Age '+BLD_AGE[type]);return}
   for(const k in d.cost){ if(human.res[k]<d.cost[k]){ flash('Not enough '+k); return; } }
-  // need a villager selected
   const v=selected.find(u=>u.type==='villager');
   if(!v){ flash('Select a villager first'); return; }
-  if(onRiver(x,y)){ flash('Cannot build on river'); return; }
+  if(type==='bridge'){
+    if(!onRiver(x,y)){ flash('Bridge must be placed ON the river'); return; }
+  } else if(d.naval){
+    if(onRiver(x,y)){ flash('Place dock on the bank'); return; }
+    let near=false;
+    for(let r=20;r<=80 && !near;r+=10){
+      for(let a=0;a<8;a++){ if(onRiver(x+Math.cos(a)*r,y+Math.sin(a)*r)){near=true;break} }
+    }
+    if(!near){ flash('Dock must be next to river'); return; }
+  } else if(onRiver(x,y)){ flash('Cannot build on river'); return; }
   for(const k in d.cost) human.res[k]-=d.cost[k];
   const b=addBuilding(human,type,x,y); b.built=0.05; b.hp=d.hp*0.1;
   selected.filter(u=>u.type==='villager').forEach(u=>{u.task={kind:'build',target:b};u.tx=b.x;u.ty=b.y;});
 }
-const TRAIN_COST={villager:{food:50},soldier:{food:60,gold:20},archer:{food:40,gold:30},cavalry:{food:80,gold:60},ram:{wood:100,gold:80},monk:{food:80,gold:40}};
-const TRAIN_TIME={villager:300,soldier:420,archer:360,cavalry:540,ram:720,monk:540};
-const TRAIN_AGE={villager:1,soldier:1,archer:1,monk:2,cavalry:2,ram:3};
+const BLD_AGE={dock:2};
+const TRAIN_COST={villager:{food:50},soldier:{food:60,gold:20},archer:{food:40,gold:30},cavalry:{food:80,gold:60},ram:{wood:100,gold:80},monk:{food:80,gold:40},boat:{wood:80},warship:{wood:150,gold:80}};
+const TRAIN_TIME={villager:300,soldier:420,archer:360,cavalry:540,ram:720,monk:540,boat:480,warship:780};
+const TRAIN_AGE={villager:1,soldier:1,archer:1,monk:2,cavalry:2,ram:3,boat:2,warship:4};
 function buildingTrains(b,type){
   const d=BLD_DEF[b.type];
   return d.trains && d.trains.includes(type);
@@ -486,7 +540,6 @@ function trainUnit(p,type,fromBuilding){
   if((TRAIN_AGE[type]||1) > p.age){flash('Need Age '+TRAIN_AGE[type]);return}
   for(const k in c) if(p.res[k]<c[k]){flash('Need more '+k);return}
   if(countUnits(p)>=p.cap){flash('Need more houses');return}
-  // pick a producing building (selected one if valid, else any built one)
   let src=fromBuilding && buildingTrains(fromBuilding,type)&&fromBuilding.built>=1&&fromBuilding.owner===p ? fromBuilding : null;
   if(!src) src=buildings.find(b=>b.owner===p&&b.built>=1&&buildingTrains(b,type));
   if(!src){flash('Need a '+(BLD_DEF.barracks.trains.includes(type)?'barracks':type==='cavalry'?'stable':type==='ram'?'siege workshop':type==='monk'?'monastery':'town hall'));return}
@@ -494,20 +547,75 @@ function trainUnit(p,type,fromBuilding){
   src.queue.push({type,time:TRAIN_TIME[type]});
 }
 function tryAdvanceAge(p){
-  if(p.age>=3){flash('Max age reached');return}
-  const cost={food:200,gold:100};
+  if(p.age>=4){flash('Max age reached');return}
+  const cost={food:200+(p.age-1)*100,gold:100+(p.age-1)*60};
   for(const k in cost) if(p.res[k]<cost[k]){flash('Need more '+k);return}
   for(const k in cost) p.res[k]-=cost[k];
   p.age++; flash('Advanced to Age '+p.age+'!');
 }
 function countUnits(p){return units.filter(u=>u.owner===p).length}
+function raidNearestEnemy(human){
+  const enemies=players.filter(o=>o.team!==human.team && !o.eliminated);
+  if(!enemies.length){flash('No enemies left');return}
+  const myTH=buildings.find(b=>b.owner===human&&b.type==='townhall');
+  let target=null,bd=Infinity;
+  for(const e of enemies){
+    for(const b of buildings){
+      if(b.owner===e){
+        const d=myTH?Math.hypot(b.x-myTH.x,b.y-myTH.y):0;
+        if(d<bd){bd=d;target=b}
+      }
+    }
+  }
+  if(!target){flash('Enemy found nowhere');return}
+  const army=units.filter(u=>u.owner===human && u.type!=='villager' && !u.embarked && !UNIT_DEF[u.type].naval);
+  if(!army.length){flash('Train soldiers first!');return}
+  army.forEach((s,i)=>{
+    s.tx=target.x+rand(-40,40); s.ty=target.y+rand(-40,40);
+    s.target=target; s.task=null;
+  });
+  const ships=units.filter(u=>u.owner===human && u.type==='warship');
+  ships.forEach(s=>{ s.tx=target.x; s.ty=target.y; s.target=target; });
+  selected=army.slice();
+  cam.x=target.x-innerWidth/2; cam.y=target.y-innerHeight/2;
+  flash('RAID! '+army.length+' troops attacking');
+}
 
 let flashMsg='',flashT=0;
 function flash(m){flashMsg=m;flashT=120}
 
 function issueOrder(wx,wy,queue){
   const human=players.find(p=>p.isHuman);
-  // find target at click
+  let friendlyBoat=null;
+  for(const u of units){ if(u.owner===human && UNIT_DEF[u.type].naval && u.type==='boat' && Math.hypot(u.x-wx,u.y-wy)<22){friendlyBoat=u;break} }
+  if(friendlyBoat){
+    const land=selected.filter(s=>s.type && !UNIT_DEF[s.type].naval && s.owner===human);
+    let loaded=0;
+    for(const u of land){
+      if(friendlyBoat.passengers.length>=30) break;
+      friendlyBoat.passengers.push(u);
+      u.tx=friendlyBoat.x; u.ty=friendlyBoat.y; u.target=null; u.task=null;
+      u.embarked=friendlyBoat;
+      loaded++;
+    }
+    if(loaded){ flash(loaded+' boarded ('+friendlyBoat.passengers.length+'/30)'); particles.push({x:wx,y:wy,t:0,kind:'green'}); return; }
+  }
+  const boatSel=selected.filter(s=>s.type==='boat' && s.owner===human);
+  if(boatSel.length && !onRiver(wx,wy)){
+    let any=false;
+    boatSel.forEach(b=>{
+      if(b.passengers && b.passengers.length){
+        b.passengers.forEach((p,i)=>{
+          p.embarked=null;
+          p.x=b.x+Math.cos(i)*15; p.y=b.y+Math.sin(i)*15;
+          p.tx=wx+rand(-10,10); p.ty=wy+rand(-10,10);
+        });
+        b.passengers=[]; any=true;
+      }
+    });
+    if(any){ flash('Disembarked'); particles.push({x:wx,y:wy,t:0,kind:'blue'}); }
+  }
+
   let tgt=null;
   for(const u of units){ if(u.owner.team!==human.team && Math.hypot(u.x-wx,u.y-wy)<14){tgt={kind:'enemy',e:u};break} }
   if(!tgt){ for(const b of buildings){ if(b.owner.team!==human.team && Math.hypot(b.x-wx,b.y-wy)<b.r){tgt={kind:'enemy',e:b};break} } }
@@ -515,11 +623,13 @@ function issueOrder(wx,wy,queue){
   if(!tgt){ for(const s of stones){ if(Math.hypot(s.x-wx,s.y-wy)<s.r){tgt={kind:'stone',e:s};break} } }
   if(!tgt){ for(const g of golds){ if(Math.hypot(g.x-wx,g.y-wy)<g.r){tgt={kind:'gold',e:g};break} } }
   if(!tgt){ for(const a of animals){ if(Math.hypot(a.x-wx,a.y-wy)<10){tgt={kind:'hunt',e:a};break} } }
+  if(!tgt){ for(const f of fishes){ if(Math.hypot(f.x-wx,f.y-wy)<10){tgt={kind:'fish',e:f};break} } }
   if(!tgt){ for(const b of buildings){ if(b.owner===human && b.built<1 && Math.hypot(b.x-wx,b.y-wy)<b.r){tgt={kind:'build',e:b};break} } }
   if(!tgt){ for(const b of buildings){ if(b.owner===human && b.type==='townhall' && Math.hypot(b.x-wx,b.y-wy)<b.r){tgt={kind:'deposit',e:b};break} } }
 
   selected.forEach(u=>{
     if(!u.type) return;
+    if(u.embarked) return;
     if(tgt){
       if(tgt.kind==='enemy'){ u.target=tgt.e; u.task=null; u.tx=tgt.e.x; u.ty=tgt.e.y; }
       else if(u.type==='villager'){
@@ -529,7 +639,6 @@ function issueOrder(wx,wy,queue){
       u.tx=wx+rand(-10,10); u.ty=wy+rand(-10,10); u.target=null; u.task=null;
     }
   });
-  // ping
   particles.push({x:wx,y:wy,t:0,kind:tgt?(tgt.kind==='enemy'?'red':'green'):'blue'});
 }
 function updateSelInfo(){
@@ -549,7 +658,6 @@ function runAI(p){
   const myUnits=units.filter(u=>u.owner===p);
   const myVillagers=myUnits.filter(u=>u.type==='villager');
   const mySoldiers=myUnits.filter(u=>u.type==='soldier'||u.type==='monk');
-  // assign idle villagers to gather
   myVillagers.forEach(v=>{
     if(!v.task && !v.target){
       const need = ['wood','food','gold','stone'].sort((a,b)=>p.res[a]-p.res[b])[0];
@@ -564,15 +672,12 @@ function runAI(p){
       }
     }
   });
-  // train
   if(ai.lastTrain>180){
     ai.lastTrain=0;
     if(myVillagers.length<8 && p.res.food>=50 && countUnits(p)<p.cap) trainUnit(p,'villager');
     else if(p.res.food>=60 && p.res.gold>=20 && countUnits(p)<p.cap) trainUnit(p,'soldier');
   }
-  // age advance
   if(p.age<3 && p.res.food>=400 && p.res.gold>=200){ tryAdvanceAge(p); }
-  // build house if low cap
   if(ai.lastBuild>240 && countUnits(p)>=p.cap-2 && p.res.wood>=30){
     ai.lastBuild=0;
     const v=myVillagers.find(u=>!u.task);
@@ -586,10 +691,8 @@ function runAI(p){
       }
     }
   }
-  // attack
   if(ai.lastAttack>500 && mySoldiers.length>=4){
     ai.lastAttack=0;
-    // pick enemy player from another team
     const enemies=players.filter(o=>o.team!==p.team && !o.eliminated);
     if(enemies.length){
       const eo=enemies[Math.floor(Math.random()*enemies.length)];
@@ -602,12 +705,13 @@ function runAI(p){
 //================ UPDATE ================
 function update(){
   gameTime++; dayTime=(dayTime+0.0008)%1;
-  // edge scroll
-  const es=10;
-  if(mouse.x<20) cam.x-=es; if(mouse.x>innerWidth-20) cam.x+=es;
-  if(mouse.y<20) cam.y-=es; if(mouse.y>innerHeight-60) cam.y+=es;
-  cam.x=Math.max(0,Math.min(W-innerWidth,cam.x));
-  cam.y=Math.max(0,Math.min(H-innerHeight,cam.y));
+  if(!IS_TOUCH && mouse.active){
+    const es=10;
+    if(mouse.x<20) cam.x-=es; else if(mouse.x>innerWidth-20) cam.x+=es;
+    if(mouse.y<20) cam.y-=es; else if(mouse.y>innerHeight-60) cam.y+=es;
+  }
+  cam.x=Math.max(0,Math.min(Math.max(0,W-innerWidth),cam.x));
+  cam.y=Math.max(0,Math.min(Math.max(0,H-innerHeight),cam.y));
 
   if(flashT>0)flashT--;
 
@@ -629,6 +733,18 @@ function update(){
     a.x=Math.max(20,Math.min(W-20,a.x)); a.y=Math.max(20,Math.min(H-20,a.y));
   });
 
+  // fish — swim slowly along the river
+  fishes.forEach(f=>{
+    f.wander--;
+    f.swimT+=0.05;
+    if(f.wander<=0){ f.dir=Math.random()*Math.PI*2; f.wander=80+Math.random()*80; }
+    const nx=f.x+Math.cos(f.dir)*0.5;
+    const ny=f.y+Math.sin(f.dir)*0.5;
+    // fish stay on the river; if they drift off, nudge back
+    if(onRiver(nx,ny)){ f.x=nx; f.y=ny; }
+    else { f.dir=f.dir+Math.PI+rand(-0.5,0.5); }
+  });
+
   // players AI
   players.forEach(runAI);
 
@@ -640,10 +756,22 @@ function update(){
       job.time--;
       if(job.time<=0){
         if(countUnits(b.owner) < b.owner.cap){
-          addUnit(b.owner,job.type,b.x+rand(-30,30),b.y+b.r+10);
+          let sx=b.x+rand(-30,30), sy=b.y+b.r+10;
+          if(UNIT_DEF[job.type] && UNIT_DEF[job.type].naval){
+            let best=null,bd=Infinity;
+            for(let r=10;r<=120 && !best;r+=10){
+              for(let a=0;a<16;a++){
+                const px=b.x+Math.cos(a/16*Math.PI*2)*r, py=b.y+Math.sin(a/16*Math.PI*2)*r;
+                if(onRiver(px,py)){ best={x:px,y:py}; break; }
+              }
+            }
+            if(best){ sx=best.x; sy=best.y; }
+          }
+          const nu=addUnit(b.owner,job.type,sx,sy);
+          nu.passengers=[];
           b.queue.shift();
         } else {
-          job.time=1; // wait for cap
+          job.time=1;
         }
       }
     }
@@ -654,7 +782,10 @@ function update(){
     const u=units[i]; if(u.cd>0)u.cd--;
     u.anim+=0.2;
     const D=UNIT_DEF[u.type];
-    // task processing
+    if(u.embarked){
+      if(units.indexOf(u.embarked)<0){ u.embarked=null; }
+      else { u.x=u.embarked.x; u.y=u.embarked.y; if(u.hp<=0){units.splice(i,1)} continue; }
+    }
     if(u.task){
       const t=u.task,e=t.target;
       if(!e || (e.hp!==undefined && e.hp<=0)){ u.task=null; }
@@ -665,28 +796,24 @@ function update(){
         if(d<reach){
           u.tx=null;
           if(t.kind==='build'){
-            const need = e.maxhp - e.hp;
-            const rate = 1.2;
-            e.hp=Math.min(e.maxhp,e.hp+rate);
+            e.hp=Math.min(e.maxhp,e.hp+1.2);
             e.built=Math.min(1,e.hp/e.maxhp);
             if(e.built>=1){ u.task=null; }
-          } else if(t.kind==='tree'||t.kind==='stone'||t.kind==='gold'||t.kind==='hunt'){
+          } else if(t.kind==='tree'||t.kind==='stone'||t.kind==='gold'||t.kind==='hunt'||t.kind==='fish'){
             u.lastGather=t.kind;
             if(u.cd<=0){
               u.cd=20;
               e.hp-=5;
               if(t.kind==='hunt'){ e.fleeing=200; e.dir=Math.atan2(e.y-u.y,e.x-u.x); }
               if(e.hp<=0){
-                // collect
-                const kind = t.kind==='tree'?'wood':t.kind==='stone'?'stone':t.kind==='gold'?'gold':'food';
-                const amt = t.kind==='hunt'?40:25;
+                const kind = t.kind==='tree'?'wood':t.kind==='stone'?'stone':t.kind==='gold'?'gold':t.kind==='fish'?'fish':'food';
+                const amt = (t.kind==='hunt'||t.kind==='fish')?40:25;
                 u.carrying=kind; u.carryAmt=amt;
-                // remove resource
                 if(t.kind==='tree') trees.splice(trees.indexOf(e),1);
                 else if(t.kind==='stone') stones.splice(stones.indexOf(e),1);
                 else if(t.kind==='gold') golds.splice(golds.indexOf(e),1);
+                else if(t.kind==='fish') fishes.splice(fishes.indexOf(e),1);
                 else animals.splice(animals.indexOf(e),1);
-                // go deposit at TH
                 const th=buildings.find(b=>b.owner===u.owner&&b.type==='townhall');
                 if(th){ u.task={kind:'deposit',target:th,resume:t.kind}; u.tx=th.x; u.ty=th.y; }
                 else u.task=null;
@@ -694,13 +821,13 @@ function update(){
             }
           } else if(t.kind==='deposit'){
             if(u.carrying){ u.owner.res[u.carrying]+=u.carryAmt; u.carrying=null; u.carryAmt=0; }
-            // auto-return to nearest same-kind resource
             const resume = t.resume || u.lastGather;
             let pool=null;
             if(resume==='tree') pool=trees;
             else if(resume==='stone') pool=stones;
             else if(resume==='gold') pool=golds;
             else if(resume==='hunt') pool=animals;
+            else if(resume==='fish') pool=fishes;
             if(pool && pool.length){
               let best=null,bd=Infinity;
               for(const r of pool){ const dd=Math.hypot(r.x-u.x,r.y-u.y); if(dd<bd){bd=dd;best=r} }
@@ -711,7 +838,6 @@ function update(){
         }
       }
     }
-    // combat target
     if(u.target){
       const e=u.target;
       if(!e || e.hp<=0){ u.target=null; }
@@ -723,7 +849,6 @@ function update(){
           if(u.cd<=0){
             u.cd= u.type==='monk'?60:30;
             if(u.type==='monk'){
-              // monk: heal allies if any nearby low hp; else damage
               const ally=units.find(x=>x.owner.team===u.owner.team && x!==u && x.hp<x.maxhp && Math.hypot(x.x-u.x,x.y-u.y)<120);
               if(ally){ ally.hp=Math.min(ally.maxhp, ally.hp+15); particles.push({x:ally.x,y:ally.y,t:0,kind:'heal'}); }
               else { e.hp-=D.atk; projectiles.push({x:u.x,y:u.y,tx:e.x,ty:e.y,t:0,life:18,kind:'spirit'}); }
@@ -734,26 +859,54 @@ function update(){
         }
       }
     }
-    // auto-acquire enemies for soldiers
-    if(!u.target && !u.task && (u.type==='soldier'||u.type==='monk')){
+    if(!u.target && !u.task && (u.type==='soldier'||u.type==='monk'||u.type==='warship'||u.type==='archer'||u.type==='cavalry')){
       let best=null,bd=999;
       for(const o of units){ if(o.owner.team!==u.owner.team){const d=Math.hypot(o.x-u.x,o.y-u.y); if(d<D.sight&&d<bd){bd=d;best=o}} }
       if(!best) for(const o of buildings){ if(o.owner.team!==u.owner.team){const d=Math.hypot(o.x-u.x,o.y-u.y); if(d<D.sight&&d<bd){bd=d;best=o}} }
       if(best) u.target=best;
     }
-    // movement
     if(u.tx!==null){
       const dx=u.tx-u.x, dy=u.ty-u.y, d=Math.hypot(dx,dy);
       if(d<2){u.tx=null}
       else {
         u.facing=Math.atan2(dy,dx);
         let nx=u.x+dx/d*D.spd, ny=u.y+dy/d*D.spd;
-        if(!onRiver(nx,ny)){ u.x=nx; u.y=ny; }
-        else { u.x+=Math.cos(u.facing+1.2)*D.spd*0.5; }
+        const onR=onRiver(nx,ny);
+        // Check if a bridge covers this position
+        const onBridge=(px,py)=>buildings.some(b=>b.type==='bridge'&&b.built>=1&&Math.hypot(b.x-px,b.y-py)<b.r+6);
+        if(D.naval){
+          // Naval: must stay on river
+          if(onR){ u.x=nx; u.y=ny; }
+          else {
+            for(let a=1;a<16;a++){
+              const sign=a%2===0?1:-1, ang=u.facing+sign*Math.ceil(a/2)*0.35;
+              const ax=u.x+Math.cos(ang)*D.spd, ay=u.y+Math.sin(ang)*D.spd;
+              if(onRiver(ax,ay)){u.x=ax;u.y=ay;break}
+            }
+          }
+        } else {
+          // Land: blocked by river UNLESS a bridge is there
+          const passable = !onR || onBridge(nx,ny);
+          if(passable){ u.x=nx; u.y=ny; }
+          else {
+            // Try to navigate around the river (try 16 angles)
+            let moved=false;
+            for(let a=1;a<16;a++){
+              const sign=a%2===0?1:-1, ang=u.facing+sign*Math.ceil(a/2)*0.2;
+              const ax=u.x+Math.cos(ang)*D.spd, ay=u.y+Math.sin(ang)*D.spd;
+              if(!onRiver(ax,ay)||onBridge(ax,ay)){u.x=ax;u.y=ay;moved=true;break}
+            }
+            // If truly stuck, don't move (unit waits at river bank)
+          }
+        }
       }
+    }
+    if(D.naval && u.passengers && u.passengers.length){
+      u.passengers.forEach(p=>{ p.x=u.x; p.y=u.y; p.tx=null; p.target=null; p.task=null; });
     }
     if(u.hp<=0){
       corpses.push({x:u.x,y:u.y,t:0});
+      if(u.passengers && u.passengers.length){ u.passengers.forEach(p=>{p.embarked=null; p.hp=0;}); }
       const idx=selected.indexOf(u); if(idx>=0)selected.splice(idx,1);
       units.splice(i,1);
     }
@@ -774,7 +927,6 @@ function update(){
     }
   });
 
-  // projectiles
   for(let i=projectiles.length-1;i>=0;i--){
     const p=projectiles[i]; p.t++;
     const k=p.t/p.life;
@@ -785,11 +937,9 @@ function update(){
       projectiles.splice(i,1);
     }
   }
-  // particles
   for(let i=particles.length-1;i>=0;i--){ particles[i].t++; if(particles[i].t>30) particles.splice(i,1); }
   for(let i=corpses.length-1;i>=0;i--){ corpses[i].t++; if(corpses[i].t>600) corpses.splice(i,1); }
 
-  // building HP / elimination
   for(let i=buildings.length-1;i>=0;i--){
     const b=buildings[i];
     if(b.hp<=0){
@@ -804,7 +954,6 @@ function update(){
       if(!has){ p.eliminated=true; }
     }
   });
-  // win check
   if(!ended){
     const aliveTeams=new Set(players.filter(p=>!p.eliminated).map(p=>p.team));
     if(aliveTeams.size<=1){
@@ -817,29 +966,27 @@ function update(){
     }
   }
 
-  // HUD
   const h=players.find(p=>p.isHuman);
   document.getElementById('rWood').textContent=Math.floor(h.res.wood);
   document.getElementById('rStone').textContent=Math.floor(h.res.stone);
   document.getElementById('rGold').textContent=Math.floor(h.res.gold);
   document.getElementById('rFood').textContent=Math.floor(h.res.food);
+  document.getElementById('rFish').textContent=Math.floor(h.res.fish||0);
   document.getElementById('rPop').textContent=countUnits(h);
   document.getElementById('rCap').textContent=h.cap;
   document.getElementById('rDay').textContent='Day '+(1+Math.floor(gameTime/3600));
-  document.getElementById('rAge').textContent='Age '+['I','II','III'][h.age-1];
+  document.getElementById('rAge').textContent='Age '+['I','II','III','IV'][h.age-1];
 }
 
 //================ RENDER ================
 function drawWorld(){
-  // ground gradient (day/night tint)
-  const night = (Math.sin(dayTime*Math.PI*2)+1)/2; // 0 day - 1 night ish
-  const grass1=`hsl(${85-night*15},${45-night*20}%,${28-night*10}%)`;
-  const grass2=`hsl(${95-night*15},${40-night*20}%,${20-night*8}%)`;
+  const night = (Math.sin(dayTime*Math.PI*2)+1)/2;
+  const grass1='hsl('+(85-night*15)+','+(45-night*20)+'%,'+(28-night*10)+'%)';
+  const grass2='hsl('+(95-night*15)+','+(40-night*20)+'%,'+(20-night*8)+'%)';
   const g=ctx.createLinearGradient(0,0,0,innerHeight);
   g.addColorStop(0,grass1); g.addColorStop(1,grass2);
   ctx.fillStyle=g; ctx.fillRect(0,0,innerWidth,innerHeight);
 
-  // grass tufts (cheap)
   ctx.save();
   ctx.translate(-cam.x,-cam.y);
   ctx.fillStyle='rgba(60,80,30,0.25)';
@@ -853,9 +1000,7 @@ function drawWorld(){
   }
   ctx.restore();
 
-  // RIVER
   ctx.save(); ctx.translate(-cam.x,-cam.y);
-  // bank
   ctx.lineCap='round'; ctx.lineJoin='round';
   ctx.strokeStyle='#5a4a28';
   for(let i=0;i<RIVER.length-1;i++){
@@ -863,7 +1008,6 @@ function drawWorld(){
     ctx.lineWidth=(a.w+b.w);
     ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
   }
-  // water
   for(let i=0;i<RIVER.length-1;i++){
     const a=RIVER[i],b=RIVER[i+1];
     const grd=ctx.createLinearGradient(a.x,a.y-a.w,a.x,a.y+a.w);
@@ -872,7 +1016,6 @@ function drawWorld(){
     ctx.lineWidth=(a.w+b.w)-12;
     ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
   }
-  // stream lines (animated)
   ctx.strokeStyle='rgba(220,240,255,0.5)';
   ctx.lineWidth=1.5;
   const flow=(gameTime*0.6)%60;
@@ -884,7 +1027,6 @@ function drawWorld(){
       ctx.beginPath(); ctx.arc(px,py,1.6,0,7); ctx.stroke();
     }
   }
-  // sparkles
   ctx.fillStyle='rgba(255,255,255,0.6)';
   for(let i=0;i<RIVER.length;i+=2){
     const a=RIVER[i];
@@ -896,12 +1038,9 @@ function drawWorld(){
 
 function drawTree(t){
   const sway=Math.sin(gameTime*0.02+t.sway)*2;
-  // shadow
   ctx.fillStyle='rgba(0,0,0,0.35)';
   ctx.beginPath(); ctx.ellipse(t.x+4,t.y+8,16,5,0,0,7); ctx.fill();
-  // trunk
   ctx.fillStyle='#3a2410'; ctx.fillRect(t.x-3,t.y-4,6,14);
-  // foliage layers
   const cols=['#0e3a16','#175a22','#2a7a32'];
   cols.forEach((c,i)=>{
     ctx.fillStyle=c;
@@ -933,12 +1072,9 @@ function drawAnimal(a){
   if(a.kind==='deer'){
     ctx.fillStyle='#a06030';
     ctx.beginPath(); ctx.ellipse(a.x,a.y,9,5,0,0,7); ctx.fill();
-    // legs
     ctx.fillRect(a.x-6,a.y+2,1.5,5); ctx.fillRect(a.x+5,a.y+2,1.5,5);
-    // head
     ctx.fillStyle='#8a4a20';
     ctx.beginPath(); ctx.arc(a.x+Math.cos(a.dir)*8,a.y+Math.sin(a.dir)*8,4,0,7); ctx.fill();
-    // antlers
     ctx.strokeStyle='#5a3a10'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(a.x+8,a.y-4); ctx.lineTo(a.x+10,a.y-9); ctx.moveTo(a.x+10,a.y-9); ctx.lineTo(a.x+13,a.y-8); ctx.stroke();
   } else {
@@ -946,9 +1082,25 @@ function drawAnimal(a){
     ctx.beginPath(); ctx.ellipse(a.x,a.y,10,6,0,0,7); ctx.fill();
     ctx.fillStyle='#2a1810';
     ctx.beginPath(); ctx.arc(a.x+Math.cos(a.dir)*8,a.y+Math.sin(a.dir)*8,5,0,7); ctx.fill();
-    // tusks
     ctx.fillStyle='#f0e8c0'; ctx.fillRect(a.x+10,a.y,2,1);
   }
+}
+function drawFish(f){
+  // simple fish shape in the river
+  const sc=Math.sin(f.swimT)*2;
+  ctx.save();
+  ctx.translate(f.x,f.y);
+  ctx.rotate(f.dir);
+  // body
+  ctx.fillStyle='rgba(80,200,220,0.85)';
+  ctx.beginPath(); ctx.ellipse(0,sc*0.3,5,2.5,0,0,Math.PI*2); ctx.fill();
+  // tail
+  ctx.fillStyle='rgba(60,160,180,0.8)';
+  ctx.beginPath(); ctx.moveTo(-5,sc*0.3); ctx.lineTo(-9,sc*0.3-3); ctx.lineTo(-9,sc*0.3+3); ctx.closePath(); ctx.fill();
+  // eye
+  ctx.fillStyle='#000';
+  ctx.beginPath(); ctx.arc(3,sc*0.3-0.5,0.7,0,Math.PI*2); ctx.fill();
+  ctx.restore();
 }
 function drawBird(b){
   const fl=Math.sin(b.flap)*5;
@@ -958,33 +1110,49 @@ function drawBird(b){
 }
 
 function drawUnit(u){
+  if(u.embarked) return;
   const c=u.owner.country.color, ac=u.owner.country.accent;
   ctx.fillStyle='rgba(0,0,0,0.4)';
   ctx.beginPath(); ctx.ellipse(u.x,u.y+8,8,3,0,0,7); ctx.fill();
-  // body
+  const working = (u.task && (u.task.kind==='tree'||u.task.kind==='stone'||u.task.kind==='gold'||u.task.kind==='hunt'||u.task.kind==='fish'||u.task.kind==='build')) || (u.target && u.tx===null);
+  const swing = working ? Math.sin(gameTime*0.45+u.id*7) : 0;
   const bob=Math.sin(u.anim)*1.5;
   if(u.type==='villager'){
     ctx.fillStyle=c; ctx.fillRect(u.x-4,u.y-6+bob*0.3,8,9);
     ctx.fillStyle='#f0c898'; ctx.beginPath(); ctx.arc(u.x,u.y-10+bob*0.3,3.5,0,7); ctx.fill();
     if(u.carrying){
-      ctx.fillStyle = u.carrying==='wood'?'#6a3a18':u.carrying==='stone'?'#999':u.carrying==='gold'?'#f0c040':'#c04040';
+      ctx.fillStyle = u.carrying==='wood'?'#6a3a18':u.carrying==='stone'?'#999':u.carrying==='gold'?'#f0c040':u.carrying==='fish'?'#40c0d0':'#c04040';
       ctx.fillRect(u.x-3,u.y-14+bob*0.3,6,3);
+    }
+    if(working && u.task){
+      const dir=Math.sign(Math.cos(u.facing||0))||1;
+      const ang = -0.4 + swing*0.9;
+      const hx=u.x+dir*4, hy=u.y-4;
+      ctx.save(); ctx.translate(hx,hy); ctx.rotate(ang*dir);
+      const k=u.task.kind;
+      if(k==='tree'){ ctx.fillStyle='#5a3010'; ctx.fillRect(0,-1,9,2); ctx.fillStyle='#bbb'; ctx.fillRect(8,-3,3,5); }
+      else if(k==='stone'||k==='gold'){ ctx.fillStyle='#5a3010'; ctx.fillRect(0,-1,8,2); ctx.fillStyle='#888'; ctx.beginPath(); ctx.moveTo(8,-3); ctx.lineTo(11,0); ctx.lineTo(8,3); ctx.closePath(); ctx.fill(); }
+      else if(k==='hunt'||k==='fish'){ ctx.fillStyle='#5a3010'; ctx.fillRect(0,-0.5,11,1.5); ctx.fillStyle='#ddd'; ctx.beginPath(); ctx.moveTo(11,-2); ctx.lineTo(14,0); ctx.lineTo(11,2); ctx.closePath(); ctx.fill(); }
+      else if(k==='build'){ ctx.fillStyle='#5a3010'; ctx.fillRect(0,-1,7,2); ctx.fillStyle='#888'; ctx.fillRect(6,-3,3,6); }
+      ctx.restore();
+      if(swing>0.85 && Math.random()<0.6){
+        particles.push({x:u.x+dir*10,y:u.y-2,t:0,kind:k==='tree'?'green':k==='hunt'||k==='fish'?'hit':'spark'});
+      }
     }
   } else if(u.type==='soldier'){
     ctx.fillStyle=c; ctx.fillRect(u.x-5,u.y-7+bob*0.3,10,10);
-    ctx.fillStyle='#888'; ctx.fillRect(u.x-6,u.y-3,12,3); // belt/armor
+    ctx.fillStyle='#888'; ctx.fillRect(u.x-6,u.y-3,12,3);
     ctx.fillStyle='#f0c898'; ctx.beginPath(); ctx.arc(u.x,u.y-11+bob*0.3,3.5,0,7); ctx.fill();
-    // sword
-    ctx.strokeStyle='#ddd'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.moveTo(u.x+5,u.y); ctx.lineTo(u.x+5+Math.cos(u.facing)*8,u.y+Math.sin(u.facing)*8); ctx.stroke();
-    // accent plume
+    ctx.strokeStyle='#ddd'; ctx.lineWidth=2;
+    const sAng = u.facing + (working?Math.sin(gameTime*0.55+u.id*5)*0.9:0);
+    ctx.beginPath(); ctx.moveTo(u.x+5,u.y); ctx.lineTo(u.x+5+Math.cos(sAng)*10,u.y+Math.sin(sAng)*10); ctx.stroke();
+    if(working && Math.random()<0.25){ particles.push({x:u.x+Math.cos(sAng)*12,y:u.y+Math.sin(sAng)*12,t:0,kind:'spark'}); }
     ctx.fillStyle=ac; ctx.fillRect(u.x-1,u.y-15+bob*0.3,2,3);
   } else if(u.type==='monk'){
-    ctx.fillStyle='#d8c890'; // robe
+    ctx.fillStyle='#d8c890';
     ctx.beginPath(); ctx.moveTo(u.x-6,u.y+4); ctx.lineTo(u.x+6,u.y+4); ctx.lineTo(u.x+4,u.y-8); ctx.lineTo(u.x-4,u.y-8); ctx.closePath(); ctx.fill();
     ctx.fillStyle=c; ctx.fillRect(u.x-2,u.y-3,4,2);
     ctx.fillStyle='#f0c898'; ctx.beginPath(); ctx.arc(u.x,u.y-11+bob*0.3,3.5,0,7); ctx.fill();
-    // staff
     ctx.strokeStyle='#5a3a10'; ctx.lineWidth=1.5;
     ctx.beginPath(); ctx.moveTo(u.x+5,u.y-12); ctx.lineTo(u.x+7,u.y+5); ctx.stroke();
     ctx.fillStyle='#f0e040'; ctx.beginPath(); ctx.arc(u.x+5,u.y-13,1.8,0,7); ctx.fill();
@@ -995,10 +1163,8 @@ function drawUnit(u){
     ctx.strokeStyle='#5a3a10'; ctx.lineWidth=1.5;
     ctx.beginPath(); ctx.arc(u.x+6,u.y,5,-Math.PI/2,Math.PI/2); ctx.stroke();
   } else if(u.type==='cavalry'){
-    // horse body
     ctx.fillStyle='#5a3818'; ctx.beginPath(); ctx.ellipse(u.x,u.y+2,12,6,0,0,7); ctx.fill();
     ctx.fillStyle='#5a3818'; ctx.fillRect(u.x+8,u.y-6,5,8);
-    // rider
     ctx.fillStyle=c; ctx.fillRect(u.x-3,u.y-10+bob*0.3,7,8);
     ctx.fillStyle='#f0c898'; ctx.beginPath(); ctx.arc(u.x,u.y-13+bob*0.3,3,0,7); ctx.fill();
     ctx.strokeStyle='#ddd'; ctx.lineWidth=1.5;
@@ -1007,15 +1173,43 @@ function drawUnit(u){
     ctx.fillStyle='#3a2810'; ctx.fillRect(u.x-14,u.y-6,28,14);
     ctx.fillStyle='#5a3818'; ctx.fillRect(u.x-16,u.y-2,32,5);
     ctx.fillStyle='#888'; ctx.beginPath(); ctx.arc(u.x+16,u.y+2,4,0,7); ctx.fill();
-    // wheels
     ctx.fillStyle='#1a1008'; ctx.beginPath(); ctx.arc(u.x-9,u.y+9,3,0,7); ctx.fill(); ctx.beginPath(); ctx.arc(u.x+9,u.y+9,3,0,7); ctx.fill();
+  } else if(u.type==='boat'){
+    const wob=Math.sin(gameTime*0.08)*1.5;
+    ctx.fillStyle='#5a3a18';
+    ctx.beginPath(); ctx.ellipse(u.x,u.y+wob,18,7,0,0,7); ctx.fill();
+    ctx.fillStyle='#7a5028'; ctx.fillRect(u.x-14,u.y-2+wob,28,3);
+    ctx.strokeStyle='#3a2010'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(u.x,u.y+wob); ctx.lineTo(u.x,u.y-16+wob); ctx.stroke();
+    ctx.fillStyle=c;
+    ctx.beginPath(); ctx.moveTo(u.x,u.y-16+wob); ctx.lineTo(u.x+10,u.y-4+wob); ctx.lineTo(u.x,u.y-2+wob); ctx.closePath(); ctx.fill();
+    ctx.fillStyle=ac; ctx.fillRect(u.x-1,u.y-18+wob,2,3);
+    if(u.passengers && u.passengers.length){
+      ctx.fillStyle='#000c'; ctx.fillRect(u.x-10,u.y-24,20,8);
+      ctx.fillStyle='#f0c060'; ctx.font='bold 9px serif';
+      ctx.fillText(u.passengers.length+'/30',u.x-9,u.y-17);
+    }
+  } else if(u.type==='warship'){
+    const wob=Math.sin(gameTime*0.06)*2;
+    ctx.fillStyle='#3a2410';
+    ctx.beginPath(); ctx.ellipse(u.x,u.y+wob,28,10,0,0,7); ctx.fill();
+    ctx.fillStyle='#6a4828'; ctx.fillRect(u.x-22,u.y-3+wob,44,4);
+    ctx.fillStyle='#5a3818'; ctx.fillRect(u.x-24,u.y-7+wob,4,5); ctx.fillRect(u.x+20,u.y-7+wob,4,5);
+    ctx.strokeStyle='#2a1808'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(u.x-8,u.y+wob); ctx.lineTo(u.x-8,u.y-22+wob); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(u.x+8,u.y+wob); ctx.lineTo(u.x+8,u.y-26+wob); ctx.stroke();
+    ctx.fillStyle=c;
+    ctx.fillRect(u.x-14,u.y-22+wob,12,18);
+    ctx.fillRect(u.x+2,u.y-26+wob,12,22);
+    ctx.fillStyle=ac; ctx.fillRect(u.x-9,u.y-24+wob,2,3); ctx.fillRect(u.x+7,u.y-28+wob,2,3);
+    ctx.fillStyle='#1a1010';
+    ctx.fillRect(u.x-22,u.y+wob,4,2); ctx.fillRect(u.x+18,u.y+wob,4,2);
+    ctx.fillStyle='#f0e8c0'; ctx.font='bold 9px serif'; ctx.fillText('\u2694',u.x-4,u.y-30+wob);
   }
-  // selection ring
   if(selected.includes(u)){
     ctx.strokeStyle='#80ff60'; ctx.lineWidth=1.5;
     ctx.beginPath(); ctx.ellipse(u.x,u.y+8,10,4,0,0,7); ctx.stroke();
   }
-  // hp bar if hurt
   if(u.hp<u.maxhp){
     ctx.fillStyle='#400'; ctx.fillRect(u.x-8,u.y-16,16,2);
     ctx.fillStyle='#3c3'; ctx.fillRect(u.x-8,u.y-16,16*(u.hp/u.maxhp),2);
@@ -1027,11 +1221,9 @@ function drawCountryHouse(b,c,ac){
   const name=b.owner.country.name;
   switch(name){
     case 'Bangladesh': {
-      // Tin-roof rural cottage: bamboo walls, corrugated tin roof
-      ctx.fillStyle='#b89868'; ctx.fillRect(x-18,y-4,36,20); // bamboo wall
+      ctx.fillStyle='#b89868'; ctx.fillRect(x-18,y-4,36,20);
       ctx.strokeStyle='#6a4828'; ctx.lineWidth=1;
       for(let i=-3;i<=3;i++){ ctx.beginPath(); ctx.moveTo(x+i*5,y-4); ctx.lineTo(x+i*5,y+16); ctx.stroke(); }
-      // tin roof (slanted, silver/red)
       ctx.fillStyle='#9aa0a8'; ctx.beginPath(); ctx.moveTo(x-22,y-4); ctx.lineTo(x-14,y-20); ctx.lineTo(x+14,y-20); ctx.lineTo(x+22,y-4); ctx.closePath(); ctx.fill();
       ctx.strokeStyle='#5a6068'; for(let i=0;i<5;i++){ ctx.beginPath(); ctx.moveTo(x-22+i*9,y-4); ctx.lineTo(x-14+i*7,y-20); ctx.stroke(); }
       ctx.fillStyle=c; ctx.fillRect(x-22,y-6,44,2);
@@ -1039,50 +1231,37 @@ function drawCountryHouse(b,c,ac){
       break;
     }
     case 'Pakistan': {
-      // Mud-brick flat-roof + small dome
       ctx.fillStyle='#d8b888'; ctx.fillRect(x-20,y-12,40,28);
-      ctx.fillStyle='#a88858'; ctx.fillRect(x-20,y-14,40,3); // flat roof edge
-      // small dome
+      ctx.fillStyle='#a88858'; ctx.fillRect(x-20,y-14,40,3);
       ctx.fillStyle=c; ctx.beginPath(); ctx.arc(x,y-14,8,Math.PI,0); ctx.fill();
       ctx.fillStyle=ac; ctx.fillRect(x-1,y-26,2,4);
-      // arched door
       ctx.fillStyle='#2a1808'; ctx.beginPath(); ctx.moveTo(x-4,y+16); ctx.lineTo(x-4,y+4); ctx.arc(x,y+4,4,Math.PI,0); ctx.lineTo(x+4,y+16); ctx.closePath(); ctx.fill();
-      // window
       ctx.fillStyle='#3a3020'; ctx.fillRect(x-14,y-6,5,5); ctx.fillRect(x+9,y-6,5,5);
       break;
     }
     case 'Sri Lanka': {
-      // Clay-tile pitched roof, white walls
       ctx.fillStyle='#f0e8d0'; ctx.fillRect(x-18,y-4,36,20);
-      // tile roof (terracotta)
       ctx.fillStyle='#b04820'; ctx.beginPath(); ctx.moveTo(x-22,y-4); ctx.lineTo(x,y-22); ctx.lineTo(x+22,y-4); ctx.closePath(); ctx.fill();
       ctx.strokeStyle='#7a2810'; ctx.lineWidth=1;
       for(let i=0;i<6;i++){ ctx.beginPath(); ctx.arc(x-18+i*7,y-6,3,Math.PI,0); ctx.stroke(); }
-      ctx.fillStyle=c; ctx.fillRect(x-3,y-22,6,4); // chimney/finial
+      ctx.fillStyle=c; ctx.fillRect(x-3,y-22,6,4);
       ctx.fillStyle='#5a3018'; ctx.fillRect(x-3,y+4,6,12);
       break;
     }
     case 'Bhutan': {
-      // Dzong-style: thick walls, ornate trim, sloped wood roof
       ctx.fillStyle='#f0e8d8'; ctx.fillRect(x-20,y-8,40,24);
-      // painted band
       ctx.fillStyle=c; ctx.fillRect(x-20,y-2,40,3);
       ctx.fillStyle=ac; ctx.fillRect(x-20,y+1,40,1);
-      // wide overhanging wood roof
       ctx.fillStyle='#6a3818'; ctx.fillRect(x-24,y-14,48,6);
       ctx.fillStyle='#4a2810'; ctx.fillRect(x-24,y-8,48,2);
-      // window grilles
       ctx.fillStyle='#3a2010'; ctx.fillRect(x-12,y+4,7,7); ctx.fillRect(x+5,y+4,7,7);
       ctx.strokeStyle='#d8a040'; ctx.lineWidth=0.8;
       ctx.strokeRect(x-12,y+4,7,7); ctx.strokeRect(x+5,y+4,7,7);
-      // door
       ctx.fillStyle='#2a1808'; ctx.fillRect(x-3,y+9,6,7);
       break;
     }
     case 'China': {
-      // Pagoda-style upturned eaves, red walls
       ctx.fillStyle='#a82820'; ctx.fillRect(x-16,y-2,32,18);
-      // upturned roof
       ctx.fillStyle=c; ctx.beginPath();
       ctx.moveTo(x-22,y-2);
       ctx.quadraticCurveTo(x-26,y-6,x-20,y-8);
@@ -1091,53 +1270,39 @@ function drawCountryHouse(b,c,ac){
       ctx.quadraticCurveTo(x+26,y-6,x+22,y-2);
       ctx.closePath(); ctx.fill();
       ctx.fillStyle=ac; ctx.fillRect(x-2,y-24,4,4);
-      // round window
       ctx.fillStyle='#f0d080'; ctx.beginPath(); ctx.arc(x,y+6,3,0,7); ctx.fill();
       ctx.fillStyle='#2a1808'; ctx.fillRect(x-3,y+10,6,6);
       break;
     }
     case 'Nepal': {
-      // Newari brick + carved wood window, tiered roof
-      ctx.fillStyle='#8a4828'; ctx.fillRect(x-18,y-4,36,20); // brick
-      // brick lines
+      ctx.fillStyle='#8a4828'; ctx.fillRect(x-18,y-4,36,20);
       ctx.strokeStyle='#5a2810'; ctx.lineWidth=0.5;
       for(let i=0;i<5;i++){ ctx.beginPath(); ctx.moveTo(x-18,y-4+i*4); ctx.lineTo(x+18,y-4+i*4); ctx.stroke(); }
-      // tiered wood roof
       ctx.fillStyle='#5a3010'; ctx.fillRect(x-22,y-10,44,6);
       ctx.fillStyle=c; ctx.beginPath(); ctx.moveTo(x-18,y-10); ctx.lineTo(x,y-22); ctx.lineTo(x+18,y-10); ctx.closePath(); ctx.fill();
-      // ornate window
       ctx.fillStyle='#d8a040'; ctx.fillRect(x-6,y+2,12,8);
       ctx.fillStyle='#2a1808'; ctx.fillRect(x-4,y+4,3,4); ctx.fillRect(x+1,y+4,3,4);
       break;
     }
     case 'British': {
-      // Tudor cottage: white plaster + dark timber, thatched/shingle roof
       ctx.fillStyle='#f0ead8'; ctx.fillRect(x-18,y-4,36,20);
-      // timber framing
       ctx.strokeStyle='#2a1808'; ctx.lineWidth=1.5;
       ctx.beginPath(); ctx.moveTo(x-18,y+8); ctx.lineTo(x+18,y+8); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(x-12,y-4); ctx.lineTo(x-12,y+16); ctx.moveTo(x+12,y-4); ctx.lineTo(x+12,y+16); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(x-18,y-4); ctx.lineTo(x,y+8); ctx.lineTo(x+18,y-4); ctx.stroke();
-      // dark slate roof
       ctx.fillStyle='#3a3a3a'; ctx.beginPath(); ctx.moveTo(x-22,y-4); ctx.lineTo(x,y-22); ctx.lineTo(x+22,y-4); ctx.closePath(); ctx.fill();
-      // chimney
       ctx.fillStyle='#7a2820'; ctx.fillRect(x+8,y-22,5,8);
       ctx.fillStyle=c; ctx.fillRect(x-3,y+10,6,6);
       break;
     }
     case 'India': {
-      // Haveli: ornate, jali windows, domed pavilion (chhatri)
       ctx.fillStyle='#e8c890'; ctx.fillRect(x-20,y-6,40,22);
-      // jharokha (projecting balcony)
       ctx.fillStyle=c; ctx.fillRect(x-12,y-2,24,6);
       ctx.fillStyle=ac; ctx.fillRect(x-12,y+4,24,2);
-      // small chhatri (domed pavilion)
       ctx.fillStyle='#d8b870'; ctx.fillRect(x-6,y-14,12,8);
       ctx.fillStyle=c; ctx.beginPath(); ctx.arc(x,y-14,7,Math.PI,0); ctx.fill();
       ctx.fillStyle=ac; ctx.fillRect(x-1,y-24,2,3);
-      // jali windows
       ctx.fillStyle='#5a3818'; ctx.fillRect(x-16,y+6,5,7); ctx.fillRect(x+11,y+6,5,7);
-      // arched door
       ctx.fillStyle='#2a1808'; ctx.beginPath(); ctx.moveTo(x-4,y+16); ctx.lineTo(x-4,y+8); ctx.arc(x,y+8,4,Math.PI,0); ctx.lineTo(x+4,y+16); ctx.closePath(); ctx.fill();
       break;
     }
@@ -1157,23 +1322,114 @@ function drawBuilding(b){
   if(b.built<1) ctx.globalAlpha=0.5+b.built*0.5;
   switch(b.type){
     case 'townhall': {
-      // base
+      // Base building
       ctx.fillStyle='#6a4a20'; ctx.fillRect(b.x-40,b.y-15,80,40);
-      // roof
       ctx.fillStyle=c; ctx.beginPath(); ctx.moveTo(b.x-46,b.y-15); ctx.lineTo(b.x,b.y-50); ctx.lineTo(b.x+46,b.y-15); ctx.closePath(); ctx.fill();
-      // door
       ctx.fillStyle='#2a1808'; ctx.fillRect(b.x-7,b.y+5,14,20);
-      // flag
-      ctx.strokeStyle='#3a2810'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(b.x,b.y-50); ctx.lineTo(b.x,b.y-70); ctx.stroke();
-      ctx.fillStyle=c; ctx.fillRect(b.x,b.y-70,14,8);
-      ctx.fillStyle=ac; ctx.fillRect(b.x+1,b.y-68,4,4);
+      // Flagpole
+      ctx.strokeStyle='#5a3a10'; ctx.lineWidth=2.5;
+      ctx.beginPath(); ctx.moveTo(b.x,b.y-50); ctx.lineTo(b.x,b.y-84); ctx.stroke();
+      // Flag knob
+      ctx.fillStyle='#f0d060'; ctx.beginPath(); ctx.arc(b.x,b.y-85,2.5,0,Math.PI*2); ctx.fill();
+      // Draw country flag (16x10 flag from pole top)
+      const fx=b.x, fy=b.y-84, fw=20, fh=13;
+      const nation=b.owner.country.name;
+      ctx.save();
+      ctx.beginPath(); ctx.rect(fx,fy,fw,fh); ctx.clip();
+      if(nation==='Bangladesh'){
+        // Green background, red circle
+        ctx.fillStyle='#006a4e'; ctx.fillRect(fx,fy,fw,fh);
+        ctx.fillStyle='#f42a41'; ctx.beginPath(); ctx.arc(fx+fw*0.45,fy+fh/2,fh*0.35,0,Math.PI*2); ctx.fill();
+      } else if(nation==='Pakistan'){
+        // White left stripe, dark green right, white crescent+star
+        ctx.fillStyle='#f0f0f0'; ctx.fillRect(fx,fy,fw*0.25,fh);
+        ctx.fillStyle='#01411c'; ctx.fillRect(fx+fw*0.25,fy,fw*0.75,fh);
+        ctx.fillStyle='#f0f0f0';
+        ctx.beginPath(); ctx.arc(fx+fw*0.58,fy+fh/2,fh*0.32,0.6,2.5); ctx.arc(fx+fw*0.62,fy+fh/2,fh*0.25,2.5,0.6,true); ctx.fill();
+        ctx.beginPath(); ctx.arc(fx+fw*0.78,fy+fh*0.35,1.2,0,Math.PI*2); ctx.fill();
+      } else if(nation==='Sri Lanka'){
+        // Orange left, green right, dark red field with lion
+        ctx.fillStyle='#ff7300'; ctx.fillRect(fx,fy,fw*0.12,fh);
+        ctx.fillStyle='#009a44'; ctx.fillRect(fx+fw*0.12,fy,fw*0.12,fh);
+        ctx.fillStyle='#8d153a'; ctx.fillRect(fx+fw*0.24,fy,fw*0.76,fh);
+        ctx.fillStyle='#f5ac00';
+        ctx.strokeStyle='#f5ac00'; ctx.lineWidth=0.8;
+        ctx.strokeRect(fx+fw*0.24,fy,fw*0.76,fh);
+        // Simple lion shape
+        ctx.fillStyle='#f5ac00'; ctx.beginPath(); ctx.ellipse(fx+fw*0.65,fy+fh*0.55,fh*0.2,fh*0.25,0,0,Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(fx+fw*0.65,fy+fh*0.3,fh*0.18,0,Math.PI*2); ctx.fill();
+      } else if(nation==='Bhutan'){
+        // Orange-yellow diagonal, white dragon
+        ctx.fillStyle='#ff8000'; ctx.fillRect(fx,fy,fw,fh);
+        ctx.fillStyle='#f5c542';
+        ctx.beginPath(); ctx.moveTo(fx,fy); ctx.lineTo(fx+fw,fy+fh); ctx.lineTo(fx+fw,fy); ctx.closePath(); ctx.fill();
+        // Dragon outline
+        ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.lineWidth=1.2;
+        ctx.beginPath(); ctx.arc(fx+fw*0.5,fy+fh*0.45,fh*0.25,0,Math.PI*1.5); ctx.stroke();
+        ctx.beginPath(); ctx.arc(fx+fw*0.6,fy+fh*0.55,fh*0.18,Math.PI,Math.PI*2); ctx.stroke();
+      } else if(nation==='China'){
+        // Red with yellow stars
+        ctx.fillStyle='#de2910'; ctx.fillRect(fx,fy,fw,fh);
+        ctx.fillStyle='#f5de00';
+        // Big star
+        const star=(sx,sy,r)=>{ctx.beginPath();for(let i=0;i<5;i++){const a=i*Math.PI*2/5-Math.PI/2;ctx.lineTo(sx+r*Math.cos(a),sy+r*Math.sin(a));ctx.lineTo(sx+r*0.4*Math.cos(a+Math.PI/5),sy+r*0.4*Math.sin(a+Math.PI/5));}ctx.closePath();ctx.fill();};
+        star(fx+fw*0.22,fy+fh*0.35,fh*0.22);
+        star(fx+fw*0.52,fy+fh*0.13,fh*0.1);
+        star(fx+fw*0.62,fy+fh*0.25,fh*0.1);
+        star(fx+fw*0.62,fy+fh*0.45,fh*0.1);
+        star(fx+fw*0.52,fy+fh*0.57,fh*0.1);
+      } else if(nation==='Nepal'){
+        // White background, two red pennants (unique shape)
+        ctx.fillStyle='#f0f0f0'; ctx.fillRect(fx,fy,fw,fh);
+        ctx.fillStyle='#003893';
+        ctx.beginPath(); ctx.moveTo(fx,fy); ctx.lineTo(fx+fw*0.65,fy); ctx.lineTo(fx+fw*0.4,fy+fh*0.45); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(fx,fy+fh*0.45); ctx.lineTo(fx+fw*0.75,fy+fh*0.45); ctx.lineTo(fx+fw*0.42,fy+fh); ctx.closePath(); ctx.fill();
+        ctx.fillStyle='#dc143c';
+        ctx.beginPath(); ctx.moveTo(fx+fw*0.04,fy+fw*0.02); ctx.lineTo(fx+fw*0.57,fy+fw*0.02); ctx.lineTo(fx+fw*0.35,fy+fh*0.4); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(fx+fw*0.04,fy+fh*0.48); ctx.lineTo(fx+fw*0.67,fy+fh*0.48); ctx.lineTo(fx+fw*0.37,fy+fh*0.96); ctx.closePath(); ctx.fill();
+        ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(fx+fw*0.22,fy+fh*0.26,fh*0.1,0,Math.PI*2); ctx.fill();
+      } else if(nation==='British'){
+        // Union Jack
+        ctx.fillStyle='#012169'; ctx.fillRect(fx,fy,fw,fh);
+        ctx.strokeStyle='#fff'; ctx.lineWidth=fh*0.28;
+        ctx.beginPath(); ctx.moveTo(fx,fy); ctx.lineTo(fx+fw,fy+fh); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(fx+fw,fy); ctx.lineTo(fx,fy+fh); ctx.stroke();
+        ctx.strokeStyle='#c8102e'; ctx.lineWidth=fh*0.15;
+        ctx.beginPath(); ctx.moveTo(fx,fy); ctx.lineTo(fx+fw,fy+fh); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(fx+fw,fy); ctx.lineTo(fx,fy+fh); ctx.stroke();
+        ctx.strokeStyle='#fff'; ctx.lineWidth=fh*0.33;
+        ctx.beginPath(); ctx.moveTo(fx+fw/2,fy); ctx.lineTo(fx+fw/2,fy+fh); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(fx,fy+fh/2); ctx.lineTo(fx+fw,fy+fh/2); ctx.stroke();
+        ctx.strokeStyle='#c8102e'; ctx.lineWidth=fh*0.2;
+        ctx.beginPath(); ctx.moveTo(fx+fw/2,fy); ctx.lineTo(fx+fw/2,fy+fh); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(fx,fy+fh/2); ctx.lineTo(fx+fw,fy+fh/2); ctx.stroke();
+      } else if(nation==='India'){
+        // Three stripes + Ashoka chakra
+        ctx.fillStyle='#ff9933'; ctx.fillRect(fx,fy,fw,fh/3);
+        ctx.fillStyle='#fff'; ctx.fillRect(fx,fy+fh/3,fw,fh/3);
+        ctx.fillStyle='#138808'; ctx.fillRect(fx,fy+fh*2/3,fw,fh/3);
+        ctx.strokeStyle='#000080'; ctx.lineWidth=0.8;
+        ctx.beginPath(); ctx.arc(fx+fw/2,fy+fh/2,fh*0.14,0,Math.PI*2); ctx.stroke();
+        for(let s=0;s<12;s++){
+          const a=s/12*Math.PI*2;
+          ctx.beginPath(); ctx.moveTo(fx+fw/2,fy+fh/2);
+          ctx.lineTo(fx+fw/2+Math.cos(a)*fh*0.14,fy+fh/2+Math.sin(a)*fh*0.14); ctx.stroke();
+        }
+      } else {
+        // Fallback: country color flag
+        ctx.fillStyle=c; ctx.fillRect(fx,fy,fw,fh);
+        ctx.fillStyle=ac; ctx.fillRect(fx,fy+fh*0.33,fw,fh*0.34);
+      }
+      ctx.restore();
+      // Flag edge/outline
+      ctx.strokeStyle='rgba(0,0,0,0.3)'; ctx.lineWidth=0.5;
+      ctx.strokeRect(fx,fy,fw,fh);
       break;
     }
     case 'stable': {
       ctx.fillStyle='#6a4828'; ctx.fillRect(b.x-28,b.y-12,56,30);
       ctx.fillStyle=c; ctx.fillRect(b.x-28,b.y-20,56,8);
       ctx.fillStyle='#2a1808'; ctx.fillRect(b.x-6,b.y,12,18);
-      ctx.fillStyle='#d8a060'; ctx.fillText && ctx.fillText('🐎',b.x-8,b.y+12);
       break;
     }
     case 'siege': {
@@ -1189,10 +1445,7 @@ function drawBuilding(b){
       ctx.fillStyle='#5a3018'; ctx.fillRect(b.x-2,b.y-26,4,12); ctx.fillRect(b.x-6,b.y-22,12,4);
       break;
     }
-    case 'house': {
-      drawCountryHouse(b,c,ac);
-      break;
-    }
+    case 'house': { drawCountryHouse(b,c,ac); break; }
     case 'farm': {
       ctx.fillStyle='#5a4018'; ctx.fillRect(b.x-22,b.y-18,44,40);
       ctx.fillStyle='#c8a040';
@@ -1203,7 +1456,6 @@ function drawBuilding(b){
     case 'barracks': {
       ctx.fillStyle='#5a4a30'; ctx.fillRect(b.x-26,b.y-14,52,32);
       ctx.fillStyle=c; ctx.fillRect(b.x-26,b.y-22,52,8);
-      // crossed swords
       ctx.strokeStyle='#bbb'; ctx.lineWidth=2;
       ctx.beginPath(); ctx.moveTo(b.x-8,b.y-4); ctx.lineTo(b.x+8,b.y+8); ctx.moveTo(b.x+8,b.y-4); ctx.lineTo(b.x-8,b.y+8); ctx.stroke();
       break;
@@ -1211,26 +1463,47 @@ function drawBuilding(b){
     case 'tower': {
       ctx.fillStyle='#8a8478'; ctx.fillRect(b.x-12,b.y-30,24,46);
       ctx.fillStyle='#5a564e'; ctx.fillRect(b.x-14,b.y-34,28,6);
-      // crenellations
       for(let i=-1;i<=1;i++){ ctx.fillRect(b.x-12+i*8,b.y-38,5,4); }
       ctx.fillStyle=c; ctx.fillRect(b.x-3,b.y-50,2,16);
       ctx.fillStyle=ac; ctx.fillRect(b.x-3,b.y-50,8,4);
       break;
     }
     case 'gate': {
-      // pillars + arch
       ctx.fillStyle='#5a4828'; ctx.fillRect(b.x-22,b.y-22,8,40);
       ctx.fillRect(b.x+14,b.y-22,8,40);
       ctx.fillStyle=c; ctx.fillRect(b.x-22,b.y-28,44,8);
       ctx.fillStyle='#2a1808'; ctx.fillRect(b.x-14,b.y-18,28,32);
-      // banner
       ctx.fillStyle=ac; ctx.fillRect(b.x-3,b.y-26,6,10);
+      break;
+    }
+    case 'dock': {
+      ctx.fillStyle='#6a4828'; ctx.fillRect(b.x-26,b.y-10,52,24);
+      ctx.fillStyle='#4a3018';
+      for(let i=-2;i<=2;i++){ ctx.fillRect(b.x-26,b.y-10+i*5,52,1); }
+      ctx.fillStyle='#5a3818'; ctx.fillRect(b.x-6,b.y+10,12,22);
+      ctx.fillStyle=c; ctx.fillRect(b.x-3,b.y-22,6,12);
+      ctx.fillStyle='#bbb'; ctx.font='14px serif'; ctx.fillText('\u2693',b.x-7,b.y+4);
+      break;
+    }
+    case 'bridge': {
+      // Bridge: horizontal planks crossing the river
+      ctx.fillStyle='#6a4828'; ctx.fillRect(b.x-b.r,b.y-8,b.r*2,16);
+      ctx.fillStyle='#4a3018';
+      for(let i=-3;i<=3;i++){ ctx.fillRect(b.x-b.r,b.y-8+i*4,b.r*2,2); }
+      ctx.fillStyle='#3a2010';
+      ctx.fillRect(b.x-b.r,b.y-10,6,20); ctx.fillRect(b.x+b.r-6,b.y-10,6,20);
+      ctx.fillRect(b.x-4,b.y-10,8,20);
+      ctx.strokeStyle='#8a6030'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(b.x-b.r,b.y-8); ctx.lineTo(b.x+b.r,b.y-8);
+      ctx.moveTo(b.x-b.r,b.y+8); ctx.lineTo(b.x+b.r,b.y+8); ctx.stroke();
+      // Label
+      ctx.fillStyle='#f0e0a0'; ctx.font='bold 10px serif'; ctx.textAlign='center';
+      ctx.fillText('BRIDGE',b.x,b.y-14); ctx.textAlign='left';
       break;
     }
   }
   ctx.restore();
   if(b.built<1){
-    // scaffold
     ctx.strokeStyle='#a08040'; ctx.lineWidth=1;
     ctx.strokeRect(b.x-b.r,b.y-b.r,b.r*2,b.r*2);
     ctx.fillStyle='#0008'; ctx.fillRect(b.x-20,b.y+b.r+2,40,4);
@@ -1248,49 +1521,49 @@ function drawBuilding(b){
 function render(){
   drawWorld();
   ctx.save(); ctx.translate(-cam.x,-cam.y);
-  // Z-sorted entities
   const ents=[
     ...trees.map(o=>({...o,_d:'tree',_o:o})),
     ...stones.map(o=>({...o,_d:'stone',_o:o})),
     ...golds.map(o=>({...o,_d:'gold',_o:o})),
     ...animals.map(o=>({...o,_d:'animal',_o:o})),
+    ...fishes.map(o=>({...o,_d:'fish',_o:o})),
     ...buildings.map(o=>({...o,_d:'bld',_o:o})),
     ...units.map(o=>({...o,_d:'unit',_o:o})),
   ];
   ents.sort((a,b)=>a.y-b.y);
-  // corpses below
-  corpses.forEach(c=>{ ctx.fillStyle=`rgba(80,20,20,${1-c.t/600})`; ctx.beginPath(); ctx.arc(c.x,c.y,5,0,7); ctx.fill(); });
+  corpses.forEach(c=>{ ctx.fillStyle='rgba(80,20,20,'+(1-c.t/600)+')'; ctx.beginPath(); ctx.arc(c.x,c.y,5,0,7); ctx.fill(); });
   ents.forEach(e=>{
     if(e._d==='tree') drawTree(e._o);
     else if(e._d==='stone') drawStone(e._o);
     else if(e._d==='gold') drawGold(e._o);
     else if(e._d==='animal') drawAnimal(e._o);
+    else if(e._d==='fish') drawFish(e._o);
     else if(e._d==='bld') drawBuilding(e._o);
     else drawUnit(e._o);
   });
-  // projectiles
   projectiles.forEach(p=>{
     if(p.kind==='arrow'){ ctx.strokeStyle='#eed'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(p.cx-4,p.cy); ctx.lineTo(p.cx+4,p.cy); ctx.stroke(); }
     else { ctx.fillStyle='rgba(180,220,255,0.8)'; ctx.beginPath(); ctx.arc(p.cx,p.cy,4,0,7); ctx.fill(); }
   });
-  // particles
   particles.forEach(p=>{
     const k=1-p.t/30;
-    if(p.kind==='hit'){ ctx.fillStyle=`rgba(255,200,40,${k})`; ctx.beginPath(); ctx.arc(p.x,p.y,6*(1-k)+2,0,7); ctx.fill(); }
-    else if(p.kind==='heal'){ ctx.fillStyle=`rgba(120,255,140,${k})`; ctx.beginPath(); ctx.arc(p.x,p.y-p.t,4,0,7); ctx.fill(); }
-    else { ctx.strokeStyle=p.kind==='red'?`rgba(255,80,80,${k})`:p.kind==='green'?`rgba(120,255,120,${k})`:`rgba(120,200,255,${k})`; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(p.x,p.y,p.t,0,7); ctx.stroke(); }
+    if(p.kind==='hit'){ ctx.fillStyle='rgba(255,200,40,'+k+')'; ctx.beginPath(); ctx.arc(p.x,p.y,6*(1-k)+2,0,7); ctx.fill(); }
+    else if(p.kind==='heal'){ ctx.fillStyle='rgba(120,255,140,'+k+')'; ctx.beginPath(); ctx.arc(p.x,p.y-p.t,4,0,7); ctx.fill(); }
+    else if(p.kind==='spark'){ ctx.fillStyle='rgba(255,230,120,'+k+')'; ctx.fillRect(p.x+(p.t%5-2),p.y-p.t*0.4,2,2); }
+    else { ctx.strokeStyle=p.kind==='red'?'rgba(255,80,80,'+k+')':p.kind==='green'?'rgba(120,255,120,'+k+')'+'':'rgba(120,200,255,'+k+')'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(p.x,p.y,p.t,0,7); ctx.stroke(); }
   });
-  // birds (above all)
   birds.forEach(drawBird);
   ctx.restore();
 
-  // build preview
   if(buildMode){
     const d=BLD_DEF[buildMode];
-    ctx.strokeStyle=onRiver(mouse.x+cam.x,mouse.y+cam.y)?'#f44':'#6f6';
+    const mx=mouse.x+cam.x, my=mouse.y+cam.y;
+    const riverHere=onRiver(mx,my);
+    const validPlacement = buildMode==='bridge' ? riverHere : !riverHere;
+    ctx.strokeStyle=validPlacement?'#6f6':'#f44';
     ctx.setLineDash([4,4]); ctx.strokeRect(mouse.x-d.r,mouse.y-d.r,d.r*2,d.r*2); ctx.setLineDash([]);
+    ctx.fillStyle='rgba(255,255,255,0.07)'; ctx.fillRect(mouse.x-d.r,mouse.y-d.r,d.r*2,d.r*2);
   }
-  // selection box
   if(selectionBox){
     const b=selectionBox;
     ctx.strokeStyle='#9f9'; ctx.lineWidth=1;
@@ -1298,29 +1571,23 @@ function render(){
     ctx.fillStyle='rgba(120,255,120,0.1)';
     ctx.fillRect(Math.min(b.x1,b.x2),Math.min(b.y1,b.y2),Math.abs(b.x2-b.x1),Math.abs(b.y2-b.y1));
   }
-  // night veil
   const nightAmt=Math.max(0,Math.sin(dayTime*Math.PI*2));
-  if(nightAmt>0){ ctx.fillStyle=`rgba(10,10,40,${nightAmt*0.35})`; ctx.fillRect(0,0,innerWidth,innerHeight); }
+  if(nightAmt>0){ ctx.fillStyle='rgba(10,10,40,'+nightAmt*0.35+')'; ctx.fillRect(0,0,innerWidth,innerHeight); }
 
-  // flash
   if(flashT>0){
-    ctx.fillStyle=`rgba(0,0,0,0.6)`;
+    ctx.fillStyle='rgba(0,0,0,0.6)';
     ctx.fillRect(innerWidth/2-160,80,320,30);
     ctx.fillStyle='#f0c060'; ctx.font='14px Cinzel,serif'; ctx.textAlign='center';
     ctx.fillText(flashMsg,innerWidth/2,100);
   }
 
-  // minimap
   mctx.fillStyle='#0a0d06'; mctx.fillRect(0,0,200,160);
-  // river
   mctx.strokeStyle='#2a6a9a'; mctx.lineWidth=3;
   mctx.beginPath();
   RIVER.forEach((r,i)=>{ const x=r.x/W*200,y=r.y/H*160; if(i===0)mctx.moveTo(x,y); else mctx.lineTo(x,y); });
   mctx.stroke();
-  // entities
   buildings.forEach(b=>{ mctx.fillStyle=b.owner.country.color; mctx.fillRect(b.x/W*200-2,b.y/H*160-2,4,4); });
   units.forEach(u=>{ mctx.fillStyle=u.owner.country.color; mctx.fillRect(u.x/W*200-1,u.y/H*160-1,2,2); });
-  // viewport
   mctx.strokeStyle='#fff'; mctx.lineWidth=1;
   mctx.strokeRect(cam.x/W*200,cam.y/H*160,innerWidth/W*200,innerHeight/H*160);
 }
@@ -1335,11 +1602,9 @@ mm.addEventListener('mousedown',e=>mmJump(e.clientX,e.clientY));
 mm.addEventListener('touchstart',e=>{e.preventDefault();const t=e.touches[0];mmJump(t.clientX,t.clientY)},{passive:false});
 mm.addEventListener('touchmove',e=>{e.preventDefault();const t=e.touches[0];mmJump(t.clientX,t.clientY)},{passive:false});
 
-//================ MOBILE TOUCH CONTROLS ================
-// Mode toggle: 'select' (tap=select / drag=box-select) or 'order' (tap=move/attack/gather)
 let touchMode='select';
 const abMode=document.getElementById('abMode');
-function setMode(m){touchMode=m; abMode.innerHTML = m==='select'?'<span>👆</span>SEL':'<span>🎯</span>ORD'; abMode.classList.toggle('act',m==='order');}
+function setMode(m){touchMode=m; abMode.innerHTML = m==='select'?'<span>\u261d</span>SEL':'<span>\u1f3af</span>ORD'; abMode.classList.toggle('act',m==='order');}
 abMode && (abMode.onclick=()=>setMode(touchMode==='select'?'order':'select'));
 document.getElementById('abAtk').onclick=()=>{ window._attackMove=true; flash('Attack-move: tap target'); setMode('order'); };
 document.getElementById('abStop').onclick=()=>{ selected.forEach(u=>{if(u.type){u.tx=null;u.target=null;u.task=null}}); };
@@ -1354,8 +1619,9 @@ document.getElementById('abAll').onclick=()=>{
   if(selected.length===0) selected = units.filter(u=>u.owner===human);
   updateSelInfo();
 };
+const abRaid=document.getElementById('abRaid');
+if(abRaid) abRaid.onclick=()=>{ raidNearestEnemy(players.find(p=>p.isHuman)); };
 
-// Virtual joystick for camera pan
 const pad=document.getElementById('touchPad'), nub=document.getElementById('touchNub');
 let padVec={x:0,y:0}, padActive=false;
 function padMove(cx,cy){
@@ -1373,12 +1639,8 @@ pad.addEventListener('touchmove',e=>{e.preventDefault();if(!padActive)return;con
 pad.addEventListener('touchend',e=>{e.preventDefault();padReset()},{passive:false});
 pad.addEventListener('touchcancel',e=>{padReset()});
 
-// Camera pan from joystick + edge
-setInterval(()=>{
-  if(padActive){ cam.x += padVec.x*14; cam.y += padVec.y*14; }
-},16);
+setInterval(()=>{ if(padActive){ cam.x += padVec.x*14; cam.y += padVec.y*14; } },16);
 
-// Touch on canvas: tap=select or order based on mode; long-press=order; two-finger=pan
 let tStart=null, tMoved=false, tLong=null, panTouch=null;
 cv.addEventListener('touchstart',e=>{
   if(e.touches.length===2){
@@ -1392,7 +1654,6 @@ cv.addEventListener('touchstart',e=>{
   tStart={x:t.clientX,y:t.clientY,t:Date.now()};
   tMoved=false;
   selectionBox=null;
-  // long-press => issue order at point
   tLong=setTimeout(()=>{
     if(tStart && !tMoved){
       if(buildMode){
@@ -1432,7 +1693,6 @@ cv.addEventListener('touchend',e=>{
   if(!tStart) return;
   const dur=Date.now()-tStart.t;
   if(selectionBox){
-    // finalize box select
     const human=players.find(p=>p.isHuman);
     const b=selectionBox;
     const x1=Math.min(b.x1,b.x2),y1=Math.min(b.y1,b.y2);
@@ -1440,7 +1700,6 @@ cv.addEventListener('touchend',e=>{
     selected = units.filter(u=>u.owner===human && u.x>=x1+cam.x && u.x<=x2+cam.x && u.y>=y1+cam.y && u.y<=y2+cam.y);
     selectionBox=null; updateSelInfo();
   } else if(!tMoved && dur<380){
-    // tap: build > order (in order-mode) > select (default)
     if(buildMode){
       tryBuild(buildMode, tStart.x+cam.x, tStart.y+cam.y);
       buildMode=null;
@@ -1449,19 +1708,17 @@ cv.addEventListener('touchend',e=>{
       issueOrder(tStart.x+cam.x, tStart.y+cam.y, false);
       window._attackMove=false;
     } else {
-      // single-tap select
       const human=players.find(p=>p.isHuman);
       const wx=tStart.x+cam.x, wy=tStart.y+cam.y;
       let pick=null,bd=null;
       for(const u of units){ if(u.owner===human && Math.hypot(u.x-wx,u.y-wy)<18){pick=u;break} }
       if(!pick) for(const bb of buildings){ if(bb.owner===human && Math.hypot(bb.x-wx,bb.y-wy)<bb.r){bd=bb;break} }
-      // if tapped enemy/resource and units selected -> issue order instead
       if(!pick && !bd && selected.length>0){
         issueOrder(wx,wy,false);
       } else {
         selected = pick?[pick]:(bd?[bd]:[]);
         updateSelInfo();
-        if(selected.length>0) setMode('order'); // auto-switch so next tap commands
+        if(selected.length>0) setMode('order');
       }
     }
   }
@@ -1469,6 +1726,38 @@ cv.addEventListener('touchend',e=>{
 },{passive:true});
 cv.addEventListener('touchcancel',e=>{tStart=null;tMoved=false;selectionBox=null;if(tLong){clearTimeout(tLong);tLong=null}});
 
+function setupMobilePopups(){
+  const buildGrid=document.getElementById('popBuildGrid');
+  const trainGrid=document.getElementById('popTrainGrid');
+  const ageBtn=document.getElementById('btnAge');
+  document.querySelectorAll('#bottom .b').forEach(btn=>{
+    if(btn.dataset.build){
+      const c=btn.cloneNode(true);
+      c.onclick=()=>{ btn.click(); closePopovers(); };
+      buildGrid.appendChild(c);
+    } else if(btn.dataset.train){
+      const c=btn.cloneNode(true);
+      c.onclick=()=>{ btn.click(); closePopovers(); };
+      trainGrid.appendChild(c);
+    }
+  });
+  if(ageBtn){
+    const c=ageBtn.cloneNode(true);
+    c.id='';
+    c.onclick=()=>{ ageBtn.click(); closePopovers(); };
+    trainGrid.appendChild(c);
+  }
+  document.getElementById('abBuild').onclick=()=>openPop('popBuild');
+  document.getElementById('abTrain').onclick=()=>openPop('popTrain');
+  document.querySelectorAll('.popover').forEach(p=>{
+    p.addEventListener('click',e=>{ if(e.target===p) p.classList.remove('show'); });
+  });
+  document.querySelectorAll('[data-close]').forEach(b=>{
+    b.onclick=()=>document.getElementById(b.dataset.close).classList.remove('show');
+  });
+}
+function openPop(id){ closePopovers(); document.getElementById(id).classList.add('show'); }
+function closePopovers(){ document.querySelectorAll('.popover').forEach(p=>p.classList.remove('show')); }
 
 function loop(){ if(!ended)update(); render(); requestAnimationFrame(loop); }
 </script>
