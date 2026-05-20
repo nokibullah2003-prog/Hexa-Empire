@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
-<title>Kingdom of Villages — Enhanced RTS</title>
+<title>⬢ Hexa Empire — Conquer the Realm</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=IM+Fell+English&display=swap');
 *{margin:0;padding:0;box-sizing:border-box;-webkit-user-select:none;user-select:none}
@@ -75,7 +75,7 @@ button.b.act{background:linear-gradient(180deg,#a07020,#604010);box-shadow:0 0 1
 <div id="wrap">
 <canvas id="cv"></canvas>
 <div id="menu">
-  <h1>KINGDOM OF VILLAGES</h1>
+  <h1>⬢ HEXA EMPIRE</h1>
   <div style="color:#a89868;letter-spacing:2px;font-size:13px">Enhanced RTS — Castle, Archery Range &amp; More</div>
   <h2>CHOOSE YOUR NATION</h2>
   <div class="countries" id="countryGrid"></div>
@@ -102,11 +102,13 @@ button.b.act{background:linear-gradient(180deg,#a07020,#604010);box-shadow:0 0 1
   <button class="b" id="btnBuildMenu" style="background:linear-gradient(180deg,#2a5a8a,#103050);border-color:#60a0e0">&#127960; BUILD</button>
   <button class="b" id="btnTrainMenu" style="background:linear-gradient(180deg,#2a8a5a,#105030);border-color:#60e0a0">&#128101; TRAIN</button>
   <button class="b" id="btnAge">&#11014; Advance Age (200F,100G)</button>
+  <button class="b" id="btnManage" style="display:none;background:linear-gradient(180deg,#5a8a2a,#305010);border-color:#a0e060">&#9881; MANAGE</button>
   <button class="b" id="btnRaid" style="background:linear-gradient(180deg,#a02020,#601010);border-color:#f04040">&#9876; RAID ENEMY!</button>
   <div style="display:none" id="hiddenBtns">
     <button class="b" data-build="house">&#127968; House (30W)</button>
     <button class="b" data-build="mill">&#128675; Mill (40W)</button>
     <button class="b" data-build="lumbercamp">&#129717; Lumber Camp (50W)</button>
+    <button class="b" data-build="mining_camp">&#9935; Mining Camp (40W,20S)</button>
     <button class="b" data-build="market">&#127978; Market (80W,40G)</button>
     <button class="b" data-build="blacksmith">&#128296; Blacksmith (80W,40S)</button>
     <button class="b" data-build="barracks">&#9876; Barracks (80W,40S)</button>
@@ -139,6 +141,7 @@ button.b.act{background:linear-gradient(180deg,#a07020,#604010);box-shadow:0 0 1
   </div>
 </div>
 <canvas id="minimap" width="200" height="160" style="display:none"></canvas>
+<div id="rank" style="display:none;position:absolute;left:6px;top:46px;z-index:9;background:linear-gradient(180deg,rgba(20,15,5,.92),rgba(20,15,5,.7));border:1px solid #6b4a18;border-radius:6px;padding:5px 7px;font-size:10px;font-family:'Cinzel',serif;color:#f0c060;min-width:120px;box-shadow:0 2px 8px rgba(0,0,0,.5)"><div style="font-size:9px;letter-spacing:1.5px;color:#c8a050;border-bottom:1px solid #6b4a18;padding-bottom:3px;margin-bottom:4px;text-align:center">⬢ RANKINGS</div><div id="rankList"></div></div>
 <div class="help" id="help" style="display:none">
 <b>Controls:</b><br>
 LMB: Select / Box-select<br>
@@ -159,6 +162,24 @@ ESC: Deselect units
   <button class="ab" id="abAll" title="Select all army"><span>&#128101;</span>ALL</button>
   <button class="ab" id="abRaid" title="Raid enemy" style="background:linear-gradient(180deg,#c02020,#601010);border-color:#f04040"><span>&#9876;</span>RAID</button>
 </div>
+<div class="popover" id="popMarket"><div class="panel">
+  <h3>MARKET — TRADE</h3>
+  <div style="font-size:12px;color:#b8a878;margin-bottom:8px;text-align:center">Give 100 of one resource to receive 50 of another</div>
+  <div class="grid" id="popMarketGrid"></div>
+  <button class="close" data-close="popMarket">Close</button>
+</div></div>
+<div class="popover" id="popBlack"><div class="panel">
+  <h3>BLACKSMITH — UPGRADES</h3>
+  <div style="font-size:12px;color:#b8a878;margin-bottom:8px;text-align:center">Each tier boosts ALL your soldiers</div>
+  <div class="grid" id="popBlackGrid"></div>
+  <button class="close" data-close="popBlack">Close</button>
+</div></div>
+<div class="popover" id="popUni"><div class="panel">
+  <h3>UNIVERSITY — RESEARCH</h3>
+  <div style="font-size:12px;color:#b8a878;margin-bottom:8px;text-align:center">Advance dress, defense, and naval tech</div>
+  <div class="grid" id="popUniGrid"></div>
+  <button class="close" data-close="popUni">Close</button>
+</div></div>
 <div class="popover" id="popBuild"><div class="panel">
   <h3>BUILD</h3><div class="grid" id="popBuildGrid"></div>
   <button class="close" data-close="popBuild">Cancel</button>
@@ -193,12 +214,18 @@ const MODES=[
  {n:'3v3 (you+2 vs 3 AI)',t:[[0,1,2],[3,4,5]]},
  {n:'4v4 (you+3 vs 4 AI)',t:[[0,1,2,3],[4,5,6,7]]},
 ];
-let chosenCountry=0,chosenMode=0;
+let chosenCountry=0,chosenMode=0,chosenMap=0;
+const MAPS=[{n:'River Valley',k:'river',d:'Current map with central river'},{n:'Mainland (no river)',k:'land',d:'Pure land, no water — fast brawls'},{n:'8 Islands',k:'islands',d:'Eight islands surrounded by water — naval play'}];
 const cg=document.getElementById('countryGrid');
 COUNTRIES.forEach((c,i)=>{const d=document.createElement('div');d.className='country'+(i===0?' sel':'');d.innerHTML='<div class="swatch" style="background:'+c.color+'"></div><b>'+c.name+'</b>';d.onclick=()=>{chosenCountry=i;[...cg.children].forEach(x=>x.classList.remove('sel'));d.classList.add('sel')};cg.appendChild(d);});
 const mg=document.getElementById('modeGrid');
 MODES.forEach((m,i)=>{const d=document.createElement('div');d.className='mode'+(i===0?' sel':'');const np=m.t.flat().length;d.innerHTML='<b>'+m.n+'</b> &mdash; '+np+' players, '+m.t.length+' teams';d.onclick=()=>{chosenMode=i;[...mg.children].forEach(x=>x.classList.remove('sel'));d.classList.add('sel')};mg.appendChild(d);});
-document.getElementById('startBtn').onclick=()=>{document.getElementById('menu').style.display='none';document.getElementById('hud').style.display='flex';document.getElementById('bottom').style.display='flex';document.getElementById('minimap').style.display='block';document.getElementById('help').style.display='block';if(IS_TOUCH){document.getElementById('touchPad').style.display='block';document.getElementById('actBar').style.display='flex';}setupMobilePopups();document.getElementById('btnBuildMenu').onclick=()=>openPop('popBuild');document.getElementById('btnTrainMenu').onclick=()=>openPop('popTrain');startGame();};
+const mapWrap=document.createElement('div');mapWrap.innerHTML='<h2 style="font-family:Cinzel,serif;color:#d8b070;font-size:18px;letter-spacing:3px;margin-top:8px;text-align:center">CHOOSE MAP</h2><div id="mapGrid" class="modes"></div>';document.getElementById('menu').insertBefore(mapWrap,document.getElementById('startBtn'));
+const mapG=document.getElementById('mapGrid');
+MAPS.forEach((m,i)=>{const d=document.createElement('div');d.className='mode'+(i===0?' sel':'');d.innerHTML='<b>'+m.n+'</b> &mdash; '+m.d;d.onclick=()=>{chosenMap=i;[...mapG.children].forEach(x=>x.classList.remove('sel'));d.classList.add('sel')};mapG.appendChild(d);});
+document.getElementById('startBtn').onclick=()=>{document.getElementById('menu').style.display='none';document.getElementById('hud').style.display='flex';document.getElementById('bottom').style.display='flex';document.getElementById('minimap').style.display='block';document.getElementById('help').style.display='block';document.getElementById('rank').style.display='block';if(IS_TOUCH){document.getElementById('touchPad').style.display='block';document.getElementById('actBar').style.display='flex';}setupMobilePopups();document.getElementById('btnBuildMenu').onclick=()=>openPop('popBuild');document.getElementById('btnTrainMenu').onclick=()=>openPop('popTrain');startGame();};
+function updateRank(){if(!players.length)return;const list=players.map(p=>{let un=0,bn=0,res=0;for(const u of units)if(u.owner===p)un++;for(const b of buildings)if(b.owner===p&&b.built>=1)bn++;for(const k in p.res)res+=p.res[k];const score=un*10+bn*25+Math.floor(res/10)+p.age*50+(p.upg.atk+p.upg.armor+p.upg.boat+p.upg.dress)*20;return{p,score,un,bn};}).sort((a,b)=>b.score-a.score);const el=document.getElementById('rankList');if(!el)return;el.innerHTML=list.map((r,i)=>{const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.';const dead=r.p.eliminated?';opacity:.4;text-decoration:line-through':'';const you=r.p.isHuman?' ★':'';return '<div style="display:flex;align-items:center;gap:5px;padding:2px 0'+dead+'"><span style="width:14px;text-align:center">'+medal+'</span><span style="width:10px;height:10px;background:'+r.p.country.color+';border:1px solid #000;border-radius:2px;display:inline-block"></span><span style="flex:1;color:#f0d890;font-size:10px">'+r.p.country.name+you+'</span><span style="color:#c0a070;font-size:9px">'+r.score+'</span></div>';}).join('');}
+setInterval(updateRank,500);
 const IS_TOUCH=('ontouchstart' in window)||navigator.maxTouchPoints>0||matchMedia('(pointer:coarse)').matches;
 const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
 const mm=document.getElementById('minimap'),mctx=mm.getContext('2d');
@@ -213,24 +240,24 @@ let dayTime=0,gameTime=0,ended=false;
 function rand(a,b){return a+Math.random()*(b-a)}
 function doDeselect(){selected=[];updateSelInfo();}
 function showDeselectBtn(v){const b=document.getElementById('btnDeselect');if(b)b.style.display=v?'inline-block':'none';}
-const RIVER=[];
-function genRiver(){for(let i=0;i<=40;i++){const t=i/40,x=t*W,y=H*0.5+Math.sin(t*6)*120+Math.sin(t*15)*40;RIVER.push({x,y,w:55+Math.sin(t*4)*15});}}
-function onRiver(x,y){for(let i=0;i<RIVER.length-1;i++){const a=RIVER[i],b=RIVER[i+1];const dx=b.x-a.x,dy=b.y-a.y,L=Math.hypot(dx,dy);const t=Math.max(0,Math.min(1,((x-a.x)*dx+(y-a.y)*dy)/(L*L)));const px=a.x+dx*t,py=a.y+dy*t;if(Math.hypot(x-px,y-py)<a.w*(1-t)+b.w*t)return true;}return false;}
-function riverPoint(){const idx=Math.floor(Math.random()*(RIVER.length-1));const a=RIVER[idx],b=RIVER[idx+1],t=Math.random();return{x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t};}
+const RIVER=[];const ISLANDS=[];let MAPKIND='river';
+function genRiver(){MAPKIND=MAPS[chosenMap].k;RIVER.length=0;ISLANDS.length=0;if(MAPKIND==='river'){for(let i=0;i<=40;i++){const t=i/40,x=t*W,y=H*0.5+Math.sin(t*6)*120+Math.sin(t*15)*40;RIVER.push({x,y,w:55+Math.sin(t*4)*15});}}else if(MAPKIND==='islands'){const cx=W/2,cy=H/2;for(let i=0;i<8;i++){const a=i/8*Math.PI*2;ISLANDS.push({x:cx+Math.cos(a)*Math.min(W,H)*0.32,y:cy+Math.sin(a)*Math.min(W,H)*0.32,r:Math.min(W,H)*0.13});}ISLANDS.push({x:cx,y:cy,r:Math.min(W,H)*0.10});}}
+function onRiver(x,y){if(MAPKIND==='land')return false;if(MAPKIND==='islands'){for(const is of ISLANDS){if(Math.hypot(x-is.x,y-is.y)<is.r)return false;}return (x>20&&x<W-20&&y>20&&y<H-20);}for(let i=0;i<RIVER.length-1;i++){const a=RIVER[i],b=RIVER[i+1];const dx=b.x-a.x,dy=b.y-a.y,L=Math.hypot(dx,dy);const t=Math.max(0,Math.min(1,((x-a.x)*dx+(y-a.y)*dy)/(L*L)));const px=a.x+dx*t,py=a.y+dy*t;if(Math.hypot(x-px,y-py)<a.w*(1-t)+b.w*t)return true;}return false;}
+function riverPoint(){if(MAPKIND==='land')return{x:W/2,y:H/2};if(MAPKIND==='islands'){for(let k=0;k<50;k++){const x=Math.random()*W,y=Math.random()*H;if(onRiver(x,y))return{x,y};}return{x:W/2,y:H/2};}const idx=Math.floor(Math.random()*(RIVER.length-1));const a=RIVER[idx],b=RIVER[idx+1],t=Math.random();return{x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t};}
 const UNIT_DEF={villager:{hp:40,spd:1.4,atk:3,rng:14,sight:160,r:8,carry:10},soldier:{hp:80,spd:1.6,atk:12,rng:18,sight:200,r:9},pikeman:{hp:110,spd:1.3,atk:16,rng:24,sight:200,r:9},archer:{hp:55,spd:1.5,atk:10,rng:160,sight:230,r:8,ranged:true},crossbowman:{hp:70,spd:1.3,atk:18,rng:200,sight:250,r:8,ranged:true},cavalry:{hp:140,spd:2.4,atk:18,rng:18,sight:220,r:10},ram:{hp:300,spd:0.9,atk:40,rng:22,sight:160,r:14},trebuchet:{hp:250,spd:0.5,atk:90,rng:300,sight:200,r:16,ranged:true},champion:{hp:240,spd:1.5,atk:30,rng:20,sight:240,r:11},knight:{hp:320,spd:2.0,atk:36,rng:22,sight:260,r:12},monk:{hp:60,spd:1.5,atk:6,rng:120,sight:240,r:9,heal:true},boat:{hp:260,spd:2.0,atk:0,rng:0,sight:240,r:16,naval:true,cap:40},warship:{hp:500,spd:1.4,atk:25,rng:200,sight:260,r:18,naval:true,ranged:true}};
-const BLD_DEF={townhall:{hp:1500,r:42,cost:{},cap:5,trains:['villager']},house:{hp:300,r:22,cost:{wood:30},cap:5},farm:{hp:200,r:24,cost:{wood:40},food:0.05},mill:{hp:260,r:26,cost:{wood:40},food:0.10},lumbercamp:{hp:300,r:24,cost:{wood:50},wood:0.06},market:{hp:500,r:30,cost:{wood:80,gold:40},gold:0.05},blacksmith:{hp:550,r:28,cost:{wood:80,stone:40}},university:{hp:700,r:32,cost:{wood:200,gold:100},gold:0.08},barracks:{hp:600,r:30,cost:{wood:80,stone:40},trains:['soldier','pikeman']},archeryrange:{hp:550,r:34,cost:{wood:80,stone:40},trains:['archer','crossbowman']},stable:{hp:700,r:30,cost:{wood:100,stone:50},trains:['cavalry']},siege:{hp:700,r:32,cost:{wood:120,stone:80},trains:['ram','trebuchet']},castle:{hp:3000,r:52,cost:{wood:300,stone:200,gold:100},cap:20,trains:['champion','knight']},monastery:{hp:500,r:28,cost:{wood:100,gold:40},trains:['monk']},tower:{hp:500,r:18,cost:{stone:60},atk:15,rng:180},bombardtower:{hp:900,r:22,cost:{stone:150,gold:80},atk:55,rng:240},gate:{hp:800,r:20,cost:{wood:50,stone:30}},dock:{hp:600,r:30,cost:{wood:80,stone:40},trains:['boat','warship'],naval:true},bridge:{hp:600,r:28,cost:{wood:60,stone:60}},wall:{hp:1200,r:18,cost:{stone:40}},wonder:{hp:5000,r:60,cost:{wood:1000,stone:800,gold:500}}};
+const BLD_DEF={townhall:{hp:1500,r:42,cost:{},cap:5,trains:['villager']},house:{hp:300,r:22,cost:{wood:30},cap:5,food:0.015},farm:{hp:200,r:24,cost:{wood:40},food:0.05},mill:{hp:260,r:26,cost:{wood:40},food:0.18},lumbercamp:{hp:300,r:24,cost:{wood:50},wood:0.04},mining_camp:{hp:300,r:24,cost:{wood:40,stone:20},gold:0.025,stone:0.025},market:{hp:500,r:30,cost:{wood:80,gold:40},gold:0.05},blacksmith:{hp:550,r:28,cost:{wood:80,stone:40}},university:{hp:700,r:32,cost:{wood:200,gold:100},gold:0.08},barracks:{hp:600,r:30,cost:{wood:80,stone:40},trains:['soldier','pikeman']},archeryrange:{hp:550,r:34,cost:{wood:80,stone:40},trains:['archer','crossbowman']},stable:{hp:700,r:30,cost:{wood:100,stone:50},trains:['cavalry']},siege:{hp:700,r:32,cost:{wood:120,stone:80},trains:['ram','trebuchet']},castle:{hp:3000,r:52,cost:{wood:300,stone:200,gold:100},cap:20,trains:['champion','knight']},monastery:{hp:500,r:28,cost:{wood:100,gold:40},trains:['monk']},tower:{hp:500,r:18,cost:{stone:60},atk:15,rng:180},bombardtower:{hp:900,r:22,cost:{stone:150,gold:80},atk:55,rng:240},gate:{hp:800,r:20,cost:{wood:50,stone:30}},dock:{hp:600,r:30,cost:{wood:80,stone:40},trains:['boat','warship'],naval:true},bridge:{hp:600,r:28,cost:{wood:60,stone:60}},wall:{hp:1200,r:18,cost:{stone:40}},wonder:{hp:5000,r:60,cost:{wood:1000,stone:800,gold:500}}};
 function addUnit(p,type,x,y){const d=UNIT_DEF[type];const u={id:Math.random(),owner:p,type,x,y,hp:d.hp,maxhp:d.hp,tx:null,ty:null,target:null,task:null,carrying:null,carryAmt:0,cd:0,facing:0,anim:Math.random()*10,passengers:[]};units.push(u);return u;}
 function addBuilding(p,type,x,y){const d=BLD_DEF[type];const b={owner:p,type,x,y,hp:d.hp,maxhp:d.hp,r:d.r,cd:0,built:type==='townhall'?1:0.4,queue:[],prog:0};buildings.push(b);if(d.cap)p.cap+=d.cap;return b;}
-function startGame(){genRiver();const mode=MODES[chosenMode];let pid=0;mode.t.forEach((team,ti)=>{team.forEach(slot=>{const isHuman=(pid===0);let cidx=isHuman?chosenCountry:(chosenCountry+pid)%8;if(!isHuman&&cidx===chosenCountry)cidx=(cidx+1)%8;players.push({id:pid,country:COUNTRIES[cidx],team:ti,isHuman,res:{wood:200,stone:120,gold:80,food:200,fish:0},cap:5,age:1,eliminated:false,ai:{lastBuild:0,lastTrain:0,lastAttack:0}});pid++;});});
+function startGame(){genRiver();const mode=MODES[chosenMode];let pid=0;mode.t.forEach((team,ti)=>{team.forEach(slot=>{const isHuman=(pid===0);let cidx=isHuman?chosenCountry:(chosenCountry+pid)%8;if(!isHuman&&cidx===chosenCountry)cidx=(cidx+1)%8;players.push({id:pid,country:COUNTRIES[cidx],team:ti,isHuman,res:{wood:200,stone:120,gold:80,food:200,fish:0},cap:5,age:1,eliminated:false,upg:{atk:0,armor:0,boat:0,dress:0},ai:{lastBuild:0,lastTrain:0,lastAttack:0}});pid++;});});
 const N=players.length,margin=260,positions=[];
 for(let i=0;i<N;i++){const ang=(i/N)*Math.PI*2+Math.PI/N;let x=W/2+Math.cos(ang)*(Math.min(W,H)/2-margin);let y=H/2+Math.sin(ang)*(Math.min(W,H)/2-margin);let tries=0;while(onRiver(x,y)&&tries<20){y+=(y<H/2?-40:40);tries++;}positions.push({x,y});}
 players.forEach((p,i)=>{const pos=positions[i];addBuilding(p,'townhall',pos.x,pos.y);addBuilding(p,'gate',pos.x+40,pos.y+90);for(let k=0;k<4;k++)addUnit(p,'villager',pos.x+rand(-50,50),pos.y+rand(-50,50));for(let k=0;k<2;k++)addUnit(p,'soldier',pos.x+rand(-60,60),pos.y+rand(-60,60));addUnit(p,'monk',pos.x,pos.y-60);});
-let tc=0;for(let i=0;i<2000&&tc<400;i++){const x=rand(60,W-60),y=rand(60,H-60);if(onRiver(x,y))continue;trees.push({x,y,hp:50,r:14,sway:Math.random()*Math.PI*2});tc++;}
-let sc=0;for(let i=0;i<2000&&sc<300;i++){const x=rand(60,W-60),y=rand(60,H-60);if(onRiver(x,y))continue;stones.push({x,y,hp:80,r:16});sc++;}
-let gc=0;for(let i=0;i<2000&&gc<200;i++){const x=rand(60,W-60),y=rand(60,H-60);if(onRiver(x,y))continue;golds.push({x,y,hp:60,r:14});gc++;}
-for(let i=0;i<300;i++){const x=rand(60,W-60),y=rand(60,H-60);if(onRiver(x,y)){i--;continue;}animals.push({x,y,vx:0,vy:0,hp:30,kind:Math.random()<0.6?'deer':'boar',dir:Math.random()*Math.PI*2,wander:0,fleeing:0});if(animals.length>=150)break;}
-for(let i=0;i<60;i++){const rp=riverPoint();fishes.push({x:rp.x,y:rp.y,hp:20,dir:Math.random()*Math.PI*2,wander:Math.random()*60,swimT:Math.random()*Math.PI*2});}
-for(let i=0;i<25;i++)birds.push({x:rand(0,W),y:rand(0,H),vx:rand(-1,1),vy:rand(-0.5,0.5),flap:Math.random()*10});
+let tc=0;for(let i=0;i<2000&&tc<250;i++){const x=rand(60,W-60),y=rand(60,H-60);if(onRiver(x,y))continue;trees.push({x,y,hp:50,r:14,sway:Math.random()*Math.PI*2});tc++;}
+let sc=0;for(let i=0;i<2000&&sc<180;i++){const x=rand(60,W-60),y=rand(60,H-60);if(onRiver(x,y))continue;stones.push({x,y,hp:80,r:16});sc++;}
+let gc=0;for(let i=0;i<2000&&gc<120;i++){const x=rand(60,W-60),y=rand(60,H-60);if(onRiver(x,y))continue;golds.push({x,y,hp:60,r:14});gc++;}
+for(let i=0;i<300;i++){const x=rand(60,W-60),y=rand(60,H-60);if(onRiver(x,y)){i--;continue;}animals.push({x,y,vx:0,vy:0,hp:30,kind:Math.random()<0.6?'deer':'boar',dir:Math.random()*Math.PI*2,wander:0,fleeing:0});if(animals.length>=90)break;}
+for(let i=0;i<35;i++){const rp=riverPoint();fishes.push({x:rp.x,y:rp.y,hp:20,dir:Math.random()*Math.PI*2,wander:Math.random()*60,swimT:Math.random()*Math.PI*2});}
+for(let i=0;i<14;i++)birds.push({x:rand(0,W),y:rand(0,H),vx:rand(-1,1),vy:rand(-0.5,0.5),flap:Math.random()*10});
 const hp=players.find(p=>p.isHuman);const myTH=buildings.find(b=>b.owner===hp&&b.type==='townhall');cam.x=myTH.x-innerWidth/2;cam.y=myTH.y-innerHeight/2;
 document.getElementById('rNation').textContent=hp.country.name;
 const teamStr=mode.t.map((t,i)=>'T'+(i+1)+':'+t.map(s=>players[mode.t.slice(0,i).flat().length+t.indexOf(s)]?.country.name||'?').join('+')).join(' | ');
@@ -243,7 +270,7 @@ cv.addEventListener('mouseleave',()=>{mouse.active=false;});
 cv.addEventListener('mouseup',e=>{mouse.down=false;if(selectionBox){const b=selectionBox;const x1=Math.min(b.x1,b.x2),y1=Math.min(b.y1,b.y2);const x2=Math.max(b.x1,b.x2),y2=Math.max(b.y1,b.y2);const human=players.find(p=>p.isHuman);if(Math.abs(x2-x1)<5&&Math.abs(y2-y1)<5){const wx=x1+cam.x,wy=y1+cam.y;let pick=null,bd=null;for(const u of units){if(u.owner===human&&Math.hypot(u.x-wx,u.y-wy)<(UNIT_DEF[u.type]&&UNIT_DEF[u.type].naval?28:14)){pick=u;break;}}if(!pick)for(const bb of buildings){if(bb.owner===human&&Math.hypot(bb.x-wx,bb.y-wy)<bb.r){bd=bb;break;}}const vsel=selected.filter(s=>s.type==='villager'&&s.owner===human);if(bd&&bd.built<1&&vsel.length>0){vsel.forEach(u=>{u.task={kind:'build',target:bd};u.tx=bd.x;u.ty=bd.y;u.target=null;});particles.push({x:wx,y:wy,t:0,kind:'green'});}else{const hasUnits=selected.some(s=>s.type&&s.owner===human);let isOT=false;if(!pick&&!bd&&hasUnits){for(const u of units){if(u.owner.team!==human.team&&Math.hypot(u.x-wx,u.y-wy)<14){isOT=true;break;}}if(!isOT)for(const bb of buildings){if(bb.owner.team!==human.team&&Math.hypot(bb.x-wx,bb.y-wy)<bb.r){isOT=true;break;}}if(!isOT)for(const t of trees){if(Math.hypot(t.x-wx,t.y-wy)<t.r){isOT=true;break;}}if(!isOT)for(const s of stones){if(Math.hypot(s.x-wx,s.y-wy)<s.r){isOT=true;break;}}if(!isOT)for(const g of golds){if(Math.hypot(g.x-wx,g.y-wy)<g.r){isOT=true;break;}}if(!isOT)for(const a of animals){if(Math.hypot(a.x-wx,a.y-wy)<10){isOT=true;break;}}if(!isOT)for(const f of fishes){if(Math.hypot(f.x-wx,f.y-wy)<10){isOT=true;break;}}}if(isOT){issueOrder(wx,wy,false);}else{selected=pick?[pick]:(bd?[bd]:[]);}}}else{selected=units.filter(u=>u.owner===human&&u.x>=x1+cam.x&&u.x<=x2+cam.x&&u.y>=y1+cam.y&&u.y<=y2+cam.y);}selectionBox=null;updateSelInfo();}});
 addEventListener('keydown',e=>{if(e.key==='Escape'){doDeselect();return;}if(e.key==='a'||e.key==='A')window._attackMove=true;if(e.key==='s'||e.key==='S')selected.forEach(u=>{if(u.type){u.tx=null;u.target=null;u.task=null;}});if(e.key==='h'||e.key==='H'){const th=buildings.find(b=>b.owner===players.find(p=>p.isHuman)&&b.type==='townhall');if(th){cam.x=th.x-innerWidth/2;cam.y=th.y-innerHeight/2;}}const sp=40;if(e.key==='ArrowLeft')cam.x-=sp;if(e.key==='ArrowRight')cam.x+=sp;if(e.key==='ArrowUp')cam.y-=sp;if(e.key==='ArrowDown')cam.y+=sp;});
 document.querySelectorAll('#bottom .b').forEach(btn=>{btn.onclick=()=>{const human=players.find(p=>p.isHuman);if(btn.id==='btnAge'){tryAdvanceAge(human);return;}if(btn.id==='btnRaid'){raidNearestEnemy(human);return;}if(btn.dataset.build){buildMode=btn.dataset.build;document.querySelectorAll('#bottom .b').forEach(b=>b.classList.remove('act'));btn.classList.add('act');}else if(btn.dataset.train){const sel=selected.find(s=>!s.type&&s.owner===human);trainUnit(human,btn.dataset.train,sel||null);}};});
-const BLD_AGE={mill:1,lumbercamp:1,market:2,blacksmith:2,dock:2,castle:3,university:3,bombardtower:4,wonder:4};
+const BLD_AGE={mining_camp:1,mill:1,lumbercamp:1,market:2,blacksmith:2,dock:2,castle:3,university:3,bombardtower:4,wonder:4};
 const TRAIN_COST={villager:{food:50},soldier:{food:60,gold:20},pikeman:{food:70,gold:25},archer:{food:40,gold:30},crossbowman:{food:60,gold:40},cavalry:{food:80,gold:60},ram:{wood:100,gold:80},trebuchet:{wood:180,gold:120},champion:{food:100,gold:80},knight:{food:120,gold:100},monk:{food:80,gold:40},boat:{wood:80},warship:{wood:150,gold:80}};
 const TRAIN_TIME={villager:300,soldier:420,pikeman:480,archer:360,crossbowman:420,cavalry:540,ram:720,trebuchet:960,champion:600,knight:660,monk:540,boat:480,warship:780};
 const TRAIN_AGE={villager:1,soldier:1,pikeman:1,archer:1,crossbowman:2,cavalry:2,ram:3,trebuchet:3,champion:3,knight:3,monk:2,boat:2,warship:4};
@@ -256,9 +283,191 @@ function raidNearestEnemy(human){const enemies=players.filter(o=>o.team!==human.
 let flashMsg='',flashT=0;function flash(m){flashMsg=m;flashT=120;}
 function issueOrder(wx,wy,queue){const human=players.find(p=>p.isHuman);let fboat=null;for(const u of units){if(u.owner===human&&UNIT_DEF[u.type].naval&&u.type==='boat'&&Math.hypot(u.x-wx,u.y-wy)<34){fboat=u;break;}}if(fboat){const land=selected.filter(s=>s.type&&!UNIT_DEF[s.type].naval&&s.owner===human);let loaded=0;for(const u of land){if((fboat.passengers||[]).length>=30)break;if(!fboat.passengers)fboat.passengers=[];fboat.passengers.push(u);u.tx=fboat.x;u.ty=fboat.y;u.target=null;u.task=null;u.embarked=fboat;loaded++;}if(loaded){flash(loaded+' boarded');particles.push({x:wx,y:wy,t:0,kind:'green'});return;}}const boatSel=selected.filter(s=>s.type==='boat'&&s.owner===human);if(boatSel.length&&!onRiver(wx,wy)){let any=false;boatSel.forEach(b=>{if(b.passengers&&b.passengers.length){b.passengers.forEach((p,i)=>{p.embarked=null;p.x=b.x+Math.cos(i)*15;p.y=b.y+Math.sin(i)*15;p.tx=wx+rand(-10,10);p.ty=wy+rand(-10,10);});b.passengers=[];any=true;}});if(any){flash('Disembarked');particles.push({x:wx,y:wy,t:0,kind:'blue'});}}let tgt=null;for(const u of units){if(u.owner.team!==human.team&&Math.hypot(u.x-wx,u.y-wy)<14){tgt={kind:'enemy',e:u};break;}}if(!tgt)for(const b of buildings){if(b.owner.team!==human.team&&Math.hypot(b.x-wx,b.y-wy)<b.r){tgt={kind:'enemy',e:b};break;}}if(!tgt)for(const t of trees){if(Math.hypot(t.x-wx,t.y-wy)<t.r){tgt={kind:'tree',e:t};break;}}if(!tgt)for(const s of stones){if(Math.hypot(s.x-wx,s.y-wy)<s.r){tgt={kind:'stone',e:s};break;}}if(!tgt)for(const g of golds){if(Math.hypot(g.x-wx,g.y-wy)<g.r){tgt={kind:'gold',e:g};break;}}if(!tgt)for(const a of animals){if(Math.hypot(a.x-wx,a.y-wy)<10){tgt={kind:'hunt',e:a};break;}}if(!tgt)for(const f of fishes){if(Math.hypot(f.x-wx,f.y-wy)<10){tgt={kind:'fish',e:f};break;}}if(!tgt)for(const b of buildings){if(b.owner===human&&b.built<1&&Math.hypot(b.x-wx,b.y-wy)<b.r){tgt={kind:'build',e:b};break;}}if(!tgt)for(const b of buildings){if(b.owner===human&&b.type==='townhall'&&Math.hypot(b.x-wx,b.y-wy)<b.r){tgt={kind:'deposit',e:b};break;}}selected.forEach(u=>{if(!u.type||u.embarked)return;if(tgt){if(tgt.kind==='enemy'){u.target=tgt.e;u.task=null;u.tx=tgt.e.x;u.ty=tgt.e.y;}else if(u.type==='villager'){u.task={kind:tgt.kind,target:tgt.e};u.tx=tgt.e.x;u.ty=tgt.e.y;u.target=null;}else{u.tx=wx;u.ty=wy;u.target=null;u.task=null;}}else{u.tx=wx+rand(-10,10);u.ty=wy+rand(-10,10);u.target=null;u.task=null;}});particles.push({x:wx,y:wy,t:0,kind:tgt?(tgt.kind==='enemy'?'red':'green'):'blue'});if(selected.length>0&&selected.some(s=>s.type))showDeselectBtn(true);}
 function updateSelInfo(){const el=document.getElementById('sel');if(!selected.length){el.textContent='Nothing selected';showDeselectBtn(false);return;}if(selected[0].type){const counts={};selected.forEach(u=>counts[u.type]=(counts[u.type]||0)+1);el.textContent='Selected: '+Object.entries(counts).map(([k,v])=>v+' '+k).join(', ');showDeselectBtn(true);}else{el.textContent='Building: '+selected[0].type+' ('+Math.round(selected[0].hp)+'hp)';showDeselectBtn(false);}}
-function runAI(p){if(p.isHuman||p.eliminated)return;const ai=p.ai;ai.lastBuild++;ai.lastTrain++;ai.lastAttack++;const myUnits=units.filter(u=>u.owner===p);const myVil=myUnits.filter(u=>u.type==='villager');const mySol=myUnits.filter(u=>['soldier','pikeman','monk','champion'].includes(u.type));myVil.forEach(v=>{if(!v.task&&!v.target){const need=['wood','food','gold','stone'].sort((a,b)=>p.res[a]-p.res[b])[0];let res;if(need==='wood')res=trees[Math.floor(Math.random()*trees.length)];else if(need==='food')res=animals[Math.floor(Math.random()*animals.length)];else if(need==='gold')res=golds[Math.floor(Math.random()*golds.length)];else res=stones[Math.floor(Math.random()*stones.length)];if(res){const kind=need==='wood'?'tree':need==='food'?'hunt':need==='gold'?'gold':'stone';v.task={kind,target:res};v.tx=res.x;v.ty=res.y;}}});if(ai.lastTrain>180){ai.lastTrain=0;if(myVil.length<8&&p.res.food>=50&&countUnits(p)<p.cap)trainUnit(p,'villager');else if(p.res.food>=60&&p.res.gold>=20&&countUnits(p)<p.cap)trainUnit(p,'soldier');}if(p.age<3&&p.res.food>=400&&p.res.gold>=200)tryAdvanceAge(p);if(ai.lastBuild>240&&countUnits(p)>=p.cap-2&&p.res.wood>=30){ai.lastBuild=0;const v=myVil.find(u=>!u.task);const th=buildings.find(b=>b.owner===p&&b.type==='townhall');if(v&&th){const x=th.x+rand(-150,150),y=th.y+rand(-150,150);if(!onRiver(x,y)){p.res.wood-=30;const b=addBuilding(p,'house',x,y);b.built=0.05;b.hp=30;v.task={kind:'build',target:b};v.tx=b.x;v.ty=b.y;}}}if(ai.lastAttack>500&&mySol.length>=4){ai.lastAttack=0;const enemies=players.filter(o=>o.team!==p.team&&!o.eliminated);if(enemies.length){const eo=enemies[Math.floor(Math.random()*enemies.length)];const eth=buildings.find(b=>b.owner===eo&&b.type==='townhall');if(eth)mySol.forEach(s=>{s.tx=eth.x+rand(-30,30);s.ty=eth.y+rand(-30,30);s.target=eth;});}}}
-function update(){gameTime++;dayTime=(dayTime+0.0008)%1;if(!IS_TOUCH&&mouse.active){const es=10;if(mouse.x<20)cam.x-=es;else if(mouse.x>innerWidth-20)cam.x+=es;if(mouse.y<20)cam.y-=es;else if(mouse.y>innerHeight-60)cam.y+=es;}cam.x=Math.max(0,Math.min(Math.max(0,W-innerWidth),cam.x));cam.y=Math.max(0,Math.min(Math.max(0,H-innerHeight),cam.y));if(flashT>0)flashT--;birds.forEach(b=>{b.x+=b.vx;b.y+=b.vy;b.flap+=0.3;if(b.x<-20)b.x=W+20;if(b.x>W+20)b.x=-20;if(b.y<-20||b.y>H+20)b.vy*=-1;if(Math.random()<0.005){b.vx=rand(-1.2,1.2);b.vy=rand(-0.5,0.5);}});animals.forEach(a=>{a.wander--;if(a.fleeing>0)a.fleeing--;if(a.wander<=0){a.dir=Math.random()*Math.PI*2;a.wander=120+Math.random()*120;}const sp=a.fleeing>0?1.6:0.4;const nx=a.x+Math.cos(a.dir)*sp,ny=a.y+Math.sin(a.dir)*sp;if(onRiver(nx,ny)){a.dir+=Math.PI+rand(-0.6,0.6);a.wander=20;}else{a.x=Math.max(20,Math.min(W-20,nx));a.y=Math.max(20,Math.min(H-20,ny));}});fishes.forEach(f=>{f.wander--;f.swimT+=0.05;if(f.wander<=0){f.dir=Math.random()*Math.PI*2;f.wander=80+Math.random()*80;}const nx=f.x+Math.cos(f.dir)*0.5,ny=f.y+Math.sin(f.dir)*0.5;if(onRiver(nx,ny)){f.x=nx;f.y=ny;}else f.dir=f.dir+Math.PI+rand(-0.5,0.5);});players.forEach(runAI);buildings.forEach(b=>{if(b.built>=1){const d=BLD_DEF[b.type];if(d.food)b.owner.res.food+=d.food;if(d.wood)b.owner.res.wood+=d.wood;if(d.gold)b.owner.res.gold+=d.gold;}if(b.built>=1&&b.queue&&b.queue.length){const job=b.queue[0];job.time--;if(job.time<=0){if(countUnits(b.owner)<b.owner.cap){let sx=b.x+rand(-30,30),sy=b.y+b.r+10;if(UNIT_DEF[job.type]&&UNIT_DEF[job.type].naval){let best=null,bd2=Infinity;for(let r=10;r<=120&&!best;r+=10)for(let a=0;a<16;a++){const px=b.x+Math.cos(a/16*Math.PI*2)*r,py=b.y+Math.sin(a/16*Math.PI*2)*r;if(onRiver(px,py)){best={x:px,y:py};break;}}if(best){sx=best.x;sy=best.y;}}addUnit(b.owner,job.type,sx,sy);b.queue.shift();}else job.time=1;}}});
-for(let i=units.length-1;i>=0;i--){const u=units[i];if(u.cd>0)u.cd--;u.anim+=0.2;const D=UNIT_DEF[u.type];if(u.embarked){if(units.indexOf(u.embarked)<0)u.embarked=null;else{u.x=u.embarked.x;u.y=u.embarked.y;if(u.hp<=0)units.splice(i,1);continue;}}if(u.task){const t=u.task,e=t.target;if(!e||(e.hp!==undefined&&e.hp<=0))u.task=null;else{u.tx=e.x;u.ty=e.y;const d=Math.hypot(u.x-e.x,u.y-e.y),reach=(e.r||10)+12;if(d<reach){u.tx=null;if(t.kind==='build'){e.hp=Math.min(e.maxhp,e.hp+1.2);e.built=Math.min(1,e.hp/e.maxhp);if(e.built>=1)u.task=null;}else if(['tree','stone','gold','hunt','fish'].includes(t.kind)){u.lastGather=t.kind;if(u.cd<=0){u.cd=20;e.hp-=5;if(t.kind==='hunt'){e.fleeing=200;e.dir=Math.atan2(e.y-u.y,e.x-u.x);}if(e.hp<=0){const kind=t.kind==='tree'?'wood':t.kind==='stone'?'stone':t.kind==='gold'?'gold':t.kind==='fish'?'fish':'food';const amt=(t.kind==='hunt'||t.kind==='fish')?40:25;u.carrying=kind;u.carryAmt=amt;if(t.kind==='tree')trees.splice(trees.indexOf(e),1);else if(t.kind==='stone')stones.splice(stones.indexOf(e),1);else if(t.kind==='gold')golds.splice(golds.indexOf(e),1);else if(t.kind==='fish')fishes.splice(fishes.indexOf(e),1);else animals.splice(animals.indexOf(e),1);const th=buildings.find(b=>b.owner===u.owner&&b.type==='townhall');if(th){u.task={kind:'deposit',target:th,resume:t.kind};u.tx=th.x;u.ty=th.y;}else u.task=null;}}}else if(t.kind==='deposit'){if(u.carrying){u.owner.res[u.carrying]+=u.carryAmt;u.carrying=null;u.carryAmt=0;}const resume=t.resume||u.lastGather;const pools={tree:trees,stone:stones,gold:golds,hunt:animals,fish:fishes};const pool=pools[resume];if(pool&&pool.length){let best=null,bd2=Infinity;for(const r of pool){const dd=Math.hypot(r.x-u.x,r.y-u.y);if(dd<bd2){bd2=dd;best=r;}}if(best){u.task={kind:resume,target:best};u.tx=best.x;u.ty=best.y;}else u.task=null;}else u.task=null;}}}}if(u.target){const e=u.target;if(!e||e.hp<=0)u.target=null;else{u.tx=e.x;u.ty=e.y;const d=Math.hypot(u.x-e.x,u.y-e.y);if(d<=D.rng+(e.r||10)){u.tx=null;if(u.cd<=0){u.cd=u.type==='monk'?60:30;if(u.type==='monk'){const ally=units.find(x=>x.owner.team===u.owner.team&&x!==u&&x.hp<x.maxhp&&Math.hypot(x.x-u.x,x.y-u.y)<120);if(ally){ally.hp=Math.min(ally.maxhp,ally.hp+15);particles.push({x:ally.x,y:ally.y,t:0,kind:'heal'});}else{e.hp-=D.atk;projectiles.push({x:u.x,y:u.y,tx:e.x,ty:e.y,t:0,life:18,kind:'spirit'});}}else if(D.rng>30){const pk=u.type==='trebuchet'?'boulder':u.type==='crossbowman'?'bolt':'arrow';projectiles.push({x:u.x,y:u.y,tx:e.x,ty:e.y,t:0,life:u.type==='trebuchet'?35:18,kind:pk,dmg:D.atk,target:e});}else{e.hp-=D.atk;particles.push({x:e.x,y:e.y,t:0,kind:'hit'});}}}}}const autoTypes=['soldier','pikeman','archer','crossbowman','cavalry','champion','knight','monk','warship','trebuchet'];if(!u.target&&!u.task&&autoTypes.includes(u.type)){let best=null,bd2=999;for(const o of units){if(o.owner.team!==u.owner.team){const d=Math.hypot(o.x-u.x,o.y-u.y);if(d<D.sight&&d<bd2){bd2=d;best=o;}}}if(!best)for(const o of buildings){if(o.owner.team!==u.owner.team){const d=Math.hypot(o.x-u.x,o.y-u.y);if(d<D.sight&&d<bd2){bd2=d;best=o;}}}if(best)u.target=best;}if(u.tx!==null){const dx=u.tx-u.x,dy=u.ty-u.y,d=Math.hypot(dx,dy);if(d<2)u.tx=null;else{u.facing=Math.atan2(dy,dx);const nx=u.x+dx/d*D.spd,ny=u.y+dy/d*D.spd;const onR=onRiver(nx,ny);const onBridge=(px,py)=>buildings.some(b=>b.type==='bridge'&&b.built>=1&&Math.hypot(b.x-px,b.y-py)<b.r+6);if(D.naval){if(onR){u.x=nx;u.y=ny;}else for(let a=1;a<16;a++){const sign=a%2===0?1:-1,ang=u.facing+sign*Math.ceil(a/2)*0.35,ax=u.x+Math.cos(ang)*D.spd,ay=u.y+Math.sin(ang)*D.spd;if(onRiver(ax,ay)){u.x=ax;u.y=ay;break;}}}else{if(!onR||onBridge(nx,ny)){u.x=nx;u.y=ny;}else{for(let a=1;a<16;a++){const sign=a%2===0?1:-1,ang=u.facing+sign*Math.ceil(a/2)*0.2,ax=u.x+Math.cos(ang)*D.spd,ay=u.y+Math.sin(ang)*D.spd;if(!onRiver(ax,ay)||onBridge(ax,ay)){u.x=ax;u.y=ay;break;}}}}}}if(D.naval&&u.passengers&&u.passengers.length)u.passengers.forEach(p=>{p.x=u.x;p.y=u.y;p.tx=null;p.target=null;p.task=null;});if(u.hp<=0){corpses.push({x:u.x,y:u.y,t:0});if(u.passengers&&u.passengers.length)u.passengers.forEach(p=>{p.embarked=null;p.hp=0;});const idx=selected.indexOf(u);if(idx>=0)selected.splice(idx,1);units.splice(i,1);}}
+function aiCanAfford(p,c){for(const k in c)if((p.res[k]||0)<c[k])return false;return true;}
+function aiPayBuild(p,type,x,y){const d=BLD_DEF[type];if(!d)return null;for(const k in d.cost)p.res[k]-=d.cost[k];const b=addBuilding(p,type,x,y);b.built=0.05;b.hp=d.hp*0.1;return b;}
+function aiFindBuildSpot(p,th,radius){for(let tries=0;tries<25;tries++){const a=Math.random()*Math.PI*2,r=60+Math.random()*radius;const x=th.x+Math.cos(a)*r,y=th.y+Math.sin(a)*r;if(onRiver(x,y))continue;if(x<40||y<40||x>W-40||y>H-40)continue;let bad=false;for(const b of buildings){if(Math.hypot(b.x-x,b.y-y)<b.r+30){bad=true;break;}}if(!bad)return{x,y};}return null;}
+function aiFindDockSpot(p,th){for(let tries=0;tries<40;tries++){const a=Math.random()*Math.PI*2,r=80+Math.random()*220;const x=th.x+Math.cos(a)*r,y=th.y+Math.sin(a)*r;if(onRiver(x,y))continue;if(x<40||y<40||x>W-40||y>H-40)continue;let near=false;for(let rr=20;rr<=80&&!near;rr+=10)for(let k=0;k<8;k++)if(onRiver(x+Math.cos(k)*rr,y+Math.sin(k)*rr)){near=true;break;}if(!near)continue;let bad=false;for(const b of buildings){if(Math.hypot(b.x-x,b.y-y)<b.r+30){bad=true;break;}}if(!bad)return{x,y};}return null;}
+function aiNearestResource(arr,x,y){let best=null,bd=Infinity;for(const r of arr){const d=Math.hypot(r.x-x,r.y-y);if(d<bd){bd=d;best=r;}}return best;}
+function runAI(p){
+  if(p.isHuman||p.eliminated)return;
+  const ai=p.ai;ai.lastBuild++;ai.lastTrain++;ai.lastAttack++;ai.lastUpg=(ai.lastUpg||0)+1;ai.lastBoat=(ai.lastBoat||0)+1;ai.lastScout=(ai.lastScout||0)+1;
+  const myUnits=units.filter(u=>u.owner===p);
+  const myVil=myUnits.filter(u=>u.type==='villager');
+  const myBld=buildings.filter(b=>b.owner===p);
+  const myDone=myBld.filter(b=>b.built>=1);
+  const myMil=myUnits.filter(u=>u.type&&u.type!=='villager'&&!UNIT_DEF[u.type].naval);
+  const myBoats=myUnits.filter(u=>u.type==='boat');
+  const myShips=myUnits.filter(u=>u.type==='warship');
+  const th=myDone.find(b=>b.type==='townhall')||myBld.find(b=>b.type==='townhall');
+  if(!th)return;
+
+  // ----- VILLAGER ECONOMY: balance gatherers by need -----
+  const idleV=myVil.filter(v=>!v.task&&!v.target&&!v.embarked);
+  idleV.forEach(v=>{
+    const needs=['wood','food','gold','stone'];
+    needs.sort((a,b)=>p.res[a]-p.res[b]);
+    for(const need of needs){
+      let pool,kind;
+      if(need==='wood'){pool=trees;kind='tree';}
+      else if(need==='food'){pool=animals.length>0&&Math.random()<0.6?animals:null;kind='hunt';if(!pool){
+          // try farm building if exists
+          const farm=myDone.find(b=>b.type==='farm'||b.type==='mill');
+          if(farm){v.task={kind:'deposit',target:farm};v.tx=farm.x;v.ty=farm.y;return;}
+          pool=animals;kind='hunt';
+        }}
+      else if(need==='gold'){pool=golds;kind='gold';}
+      else {pool=stones;kind='stone';}
+      const res=pool&&pool.length?aiNearestResource(pool,v.x,v.y):null;
+      if(res){v.task={kind,target:res};v.tx=res.x;v.ty=res.y;return;}
+    }
+  });
+
+  // ----- BUILD ORDER -----
+  if(ai.lastBuild>120){
+    const has=t=>myBld.some(b=>b.type===t);
+    const count=t=>myBld.filter(b=>b.type===t).length;
+    let plan=null;
+    if(myVil.length>=p.cap-1&&p.res.wood>=30)plan='house';
+    else if(!has('lumbercamp')&&p.res.wood>=50)plan='lumbercamp';
+    else if(!has('mill')&&p.res.wood>=40)plan='mill';
+    else if(!has('mining_camp')&&p.res.wood>=40&&p.res.stone>=20)plan='mining_camp';
+    else if(!has('barracks')&&p.res.wood>=80&&p.res.stone>=40)plan='barracks';
+    else if(count('house')<3&&p.res.wood>=30)plan='house';
+    else if(!has('archeryrange')&&p.age>=1&&p.res.wood>=80&&p.res.stone>=40)plan='archeryrange';
+    else if(!has('blacksmith')&&p.age>=2&&p.res.wood>=80&&p.res.stone>=40)plan='blacksmith';
+    else if(!has('market')&&p.age>=2&&p.res.wood>=80&&p.res.gold>=40)plan='market';
+    else if(!has('stable')&&p.age>=2&&p.res.wood>=100&&p.res.stone>=50)plan='stable';
+    else if(MAPKIND!=='land'&&!has('dock')&&p.age>=2&&p.res.wood>=80&&p.res.stone>=40)plan='dock';
+    else if(!has('tower')&&p.age>=1&&p.res.stone>=60)plan='tower';
+    else if(count('farm')<2&&p.res.wood>=40)plan='farm';
+    else if(!has('castle')&&p.age>=3&&p.res.wood>=300&&p.res.stone>=200&&p.res.gold>=100)plan='castle';
+    else if(!has('monastery')&&p.age>=2&&p.res.wood>=100&&p.res.gold>=40)plan='monastery';
+    else if(!has('siege')&&p.age>=3&&p.res.wood>=120&&p.res.stone>=80)plan='siege';
+    else if(!has('university')&&p.age>=3&&p.res.wood>=200&&p.res.gold>=100)plan='university';
+    else if(count('tower')<3&&p.res.stone>=60)plan='tower';
+    else if(count('house')<6&&p.res.wood>=30&&myVil.length>=p.cap-2)plan='house';
+    if(plan){
+      const v=myVil.find(u=>!u.task||u.task.kind==='tree'||u.task.kind==='hunt'||u.task.kind==='stone'||u.task.kind==='gold');
+      if(v){
+        const spot=(plan==='dock')?aiFindDockSpot(p,th):aiFindBuildSpot(p,th,200);
+        if(spot&&aiCanAfford(p,BLD_DEF[plan].cost)){
+          const b=aiPayBuild(p,plan,spot.x,spot.y);
+          if(b){v.task={kind:'build',target:b};v.tx=b.x;v.ty=b.y;v.target=null;ai.lastBuild=0;}
+        }
+      }
+    }
+  }
+
+  // ----- TRAINING -----
+  if(ai.lastTrain>90){
+    ai.lastTrain=0;
+    // keep villagers growing
+    if(myVil.length<14&&p.res.food>=50&&countUnits(p)<p.cap){trainUnit(p,'villager');}
+    else if(countUnits(p)<p.cap){
+      const choices=[];
+      if(myDone.some(b=>b.type==='barracks')){
+        if(p.age>=1)choices.push('soldier');
+        if(p.age>=1)choices.push('pikeman');
+      }
+      if(myDone.some(b=>b.type==='archeryrange')){
+        choices.push('archer');
+        if(p.age>=2)choices.push('crossbowman');
+      }
+      if(myDone.some(b=>b.type==='stable')&&p.age>=2)choices.push('cavalry');
+      if(myDone.some(b=>b.type==='castle')&&p.age>=3){choices.push('champion');choices.push('knight');}
+      if(myDone.some(b=>b.type==='monastery')&&p.age>=2&&myUnits.filter(u=>u.type==='monk').length<2)choices.push('monk');
+      if(myDone.some(b=>b.type==='siege')&&p.age>=3&&Math.random()<0.3)choices.push(Math.random()<0.5?'ram':'trebuchet');
+      if(choices.length){
+        const ty=choices[Math.floor(Math.random()*choices.length)];
+        if(aiCanAfford(p,TRAIN_COST[ty]))trainUnit(p,ty);
+      }
+    }
+  }
+
+  // ----- BOAT PRODUCTION (water maps) -----
+  if(MAPKIND!=='land'&&ai.lastBoat>240){
+    ai.lastBoat=0;
+    const dock=myDone.find(b=>b.type==='dock');
+    if(dock){
+      if(myBoats.length<2&&aiCanAfford(p,TRAIN_COST.boat))trainUnit(p,'boat',dock);
+      else if(p.age>=4&&myShips.length<2&&aiCanAfford(p,TRAIN_COST.warship))trainUnit(p,'warship',dock);
+    }
+  }
+
+  // ----- AGE UP -----
+  if(p.age<4){
+    const cost={food:200+(p.age-1)*100,gold:100+(p.age-1)*60};
+    if(p.res.food>=cost.food*1.4&&p.res.gold>=cost.gold*1.4)tryAdvanceAge(p);
+  }
+
+  // ----- UPGRADES via blacksmith/university -----
+  if(ai.lastUpg>600){
+    ai.lastUpg=0;
+    if(myDone.some(b=>b.type==='blacksmith')&&p.res.gold>=80&&p.res.wood>=60){
+      if(p.upg.atk<3){p.upg.atk++;p.res.gold-=80;p.res.wood-=60;}
+      else if(p.upg.armor<3){p.upg.armor++;p.res.gold-=80;p.res.wood-=60;}
+    }
+  }
+
+  // ----- DEFENSE: nearby enemies trigger soldiers to respond -----
+  for(const u of myUnits){
+    if(!u.type||u.type==='villager'||u.target||UNIT_DEF[u.type].naval)continue;
+    let near=null,nd=160;
+    for(const e of units){if(e.owner.team!==p.team&&!e.owner.eliminated){const d=Math.hypot(e.x-u.x,e.y-u.y);if(d<nd){nd=d;near=e;}}}
+    if(near){u.target=near;u.tx=near.x;u.ty=near.y;u.task=null;}
+  }
+  // villagers flee from nearby enemy soldiers
+  myVil.forEach(v=>{
+    for(const e of units){
+      if(e.owner.team!==p.team&&e.type&&e.type!=='villager'&&Math.hypot(e.x-v.x,e.y-v.y)<70){
+        const dx=v.x-e.x,dy=v.y-e.y,L=Math.hypot(dx,dy)||1;
+        v.tx=v.x+dx/L*120;v.ty=v.y+dy/L*120;v.task=null;v.target=null;break;
+      }
+    }
+  });
+
+  // ----- ATTACK STRATEGY -----
+  const minArmy=Math.min(12,6+p.age*2);
+  if(ai.lastAttack>700&&myMil.length>=minArmy){
+    ai.lastAttack=0;
+    const enemies=players.filter(o=>o.team!==p.team&&!o.eliminated);
+    if(enemies.length){
+      // pick weakest enemy
+      let bestE=null,bs=Infinity;
+      for(const e of enemies){
+        const s=units.filter(u=>u.owner===e&&u.type&&u.type!=='villager').length+buildings.filter(b=>b.owner===e).length*2;
+        if(s<bs){bs=s;bestE=e;}
+      }
+      // pick a target building (prefer townhall, else closest)
+      let target=buildings.find(b=>b.owner===bestE&&b.type==='townhall');
+      if(!target){const ebs=buildings.filter(b=>b.owner===bestE);if(ebs.length)target=ebs[Math.floor(Math.random()*ebs.length)];}
+      if(target){
+        const sameSide=!onRiver((th.x+target.x)/2,(th.y+target.y)/2);
+        // try naval transport if water-blocked and we have a boat
+        const transport=myBoats[0];
+        if(MAPKIND!=='land'&&transport&&Math.random()<0.5){
+          // load some troops
+          transport.passengers=transport.passengers||[];
+          const board=myMil.slice(0,Math.min(20,myMil.length));
+          board.forEach(s=>{if(transport.passengers.length<30){transport.passengers.push(s);s.embarked=transport;s.tx=transport.x;s.ty=transport.y;s.target=null;s.task=null;}});
+          // sail near target then dump
+          transport.tx=target.x;transport.ty=target.y;transport.target=null;
+          // Drop off via embarked unloading hack: after moving, set passengers' tx/ty toward target
+          setTimeout(()=>{
+            if(!transport||transport.hp<=0)return;
+            (transport.passengers||[]).forEach((pp,i)=>{pp.embarked=null;pp.x=transport.x+Math.cos(i)*15;pp.y=transport.y+Math.sin(i)*15;pp.tx=target.x+rand(-30,30);pp.ty=target.y+rand(-30,30);pp.target=target;});
+            transport.passengers=[];
+          },8000);
+        } else {
+          myMil.forEach(s=>{s.tx=target.x+rand(-40,40);s.ty=target.y+rand(-40,40);s.target=target;s.task=null;});
+        }
+        myShips.forEach(s=>{s.tx=target.x;s.ty=target.y;s.target=target;});
+      }
+    }
+  }
+}
+function update(){gameTime++;dayTime=(dayTime+0.0008)%1;if(!IS_TOUCH&&mouse.active){const es=10;if(mouse.x<20)cam.x-=es;else if(mouse.x>innerWidth-20)cam.x+=es;if(mouse.y<20)cam.y-=es;else if(mouse.y>innerHeight-60)cam.y+=es;}cam.x=Math.max(0,Math.min(Math.max(0,W-innerWidth),cam.x));cam.y=Math.max(0,Math.min(Math.max(0,H-innerHeight),cam.y));if(flashT>0)flashT--;birds.forEach(b=>{b.x+=b.vx;b.y+=b.vy;b.flap+=0.3;if(b.x<-20)b.x=W+20;if(b.x>W+20)b.x=-20;if(b.y<-20||b.y>H+20)b.vy*=-1;if(Math.random()<0.005){b.vx=rand(-1.2,1.2);b.vy=rand(-0.5,0.5);}});animals.forEach(a=>{a.wander--;if(a.fleeing>0)a.fleeing--;if(a.wander<=0){a.dir=Math.random()*Math.PI*2;a.wander=120+Math.random()*120;}const sp=a.fleeing>0?1.6:0.4;const nx=a.x+Math.cos(a.dir)*sp,ny=a.y+Math.sin(a.dir)*sp;if(onRiver(nx,ny)){a.dir+=Math.PI+rand(-0.6,0.6);a.wander=20;}else{a.x=Math.max(20,Math.min(W-20,nx));a.y=Math.max(20,Math.min(H-20,ny));}});fishes.forEach(f=>{f.wander--;f.swimT+=0.05;if(f.wander<=0){f.dir=Math.random()*Math.PI*2;f.wander=80+Math.random()*80;}const nx=f.x+Math.cos(f.dir)*0.5,ny=f.y+Math.sin(f.dir)*0.5;if(onRiver(nx,ny)){f.x=nx;f.y=ny;}else f.dir=f.dir+Math.PI+rand(-0.5,0.5);});players.forEach(runAI);buildings.forEach(b=>{if(b.built>=1){const d=BLD_DEF[b.type];if(d.food)b.owner.res.food+=d.food;if(d.wood)b.owner.res.wood+=d.wood;if(d.gold)b.owner.res.gold+=d.gold;}if(b.built>=1&&b.queue&&b.queue.length){const job=b.queue[0];job.time--;if(job.time<=0){if(countUnits(b.owner)<b.owner.cap){let sx=b.x+rand(-30,30),sy=b.y+b.r+10;if(UNIT_DEF[job.type]&&UNIT_DEF[job.type].naval){let best=null,bd2=Infinity;for(let r=10;r<=120&&!best;r+=10)for(let a=0;a<16;a++){const px=b.x+Math.cos(a/16*Math.PI*2)*r,py=b.y+Math.sin(a/16*Math.PI*2)*r;if(onRiver(px,py)){best={x:px,y:py};break;}}if(best){sx=best.x;sy=best.y;}}const _nu=addUnit(b.owner,job.type,sx,sy);if(UNIT_DEF[_nu.type]&&UNIT_DEF[_nu.type].naval){const bu=b.owner.upg.boat||0;_nu.maxhp=Math.round(_nu.maxhp*(1+bu*0.25));_nu.hp=_nu.maxhp;_nu.bonusAtk=bu*0.2;}b.queue.shift();}else job.time=1;}}});
+for(let i=units.length-1;i>=0;i--){const u=units[i];if(u.cd>0)u.cd--;u.anim+=0.2;const D=UNIT_DEF[u.type];if(u.embarked){if(units.indexOf(u.embarked)<0)u.embarked=null;else{u.x=u.embarked.x;u.y=u.embarked.y;if(u.hp<=0)units.splice(i,1);continue;}}if(u.task){const t=u.task,e=t.target;if(!e||(e.hp!==undefined&&e.hp<=0))u.task=null;else{u.tx=e.x;u.ty=e.y;const d=Math.hypot(u.x-e.x,u.y-e.y),reach=(e.r||10)+12;if(d<reach){u.tx=null;if(t.kind==='build'){e.hp=Math.min(e.maxhp,e.hp+1.2);e.built=Math.min(1,e.hp/e.maxhp);if(e.built>=1)u.task=null;}else if(['tree','stone','gold','hunt','fish'].includes(t.kind)){u.lastGather=t.kind;if(u.cd<=0){u.cd=20;e.hp-=5;if(t.kind==='hunt'){e.fleeing=200;e.dir=Math.atan2(e.y-u.y,e.x-u.x);}if(e.hp<=0){const kind=t.kind==='tree'?'wood':t.kind==='stone'?'stone':t.kind==='gold'?'gold':t.kind==='fish'?'fish':'food';const amt=(t.kind==='hunt'||t.kind==='fish')?40:25;u.carrying=kind;u.carryAmt=amt;if(t.kind==='tree')trees.splice(trees.indexOf(e),1);else if(t.kind==='stone')stones.splice(stones.indexOf(e),1);else if(t.kind==='gold')golds.splice(golds.indexOf(e),1);else if(t.kind==='fish')fishes.splice(fishes.indexOf(e),1);else animals.splice(animals.indexOf(e),1);const dropTypes=(kind==='wood')?['lumbercamp','townhall']:(kind==='stone'||kind==='gold')?['mining_camp','townhall']:['mill','townhall'];let th=null,bdd=Infinity;for(const bb of buildings){if(bb.owner===u.owner&&bb.built>=1&&dropTypes.includes(bb.type)){const dd=Math.hypot(bb.x-u.x,bb.y-u.y);if(dd<bdd){bdd=dd;th=bb;}}}if(th){u.task={kind:'deposit',target:th,resume:t.kind};u.tx=th.x;u.ty=th.y;}else u.task=null;}}}else if(t.kind==='deposit'){if(u.carrying){u.owner.res[u.carrying]+=u.carryAmt;u.carrying=null;u.carryAmt=0;}const resume=t.resume||u.lastGather;const pools={tree:trees,stone:stones,gold:golds,hunt:animals,fish:fishes};const pool=pools[resume];if(pool&&pool.length){let best=null,bd2=Infinity;for(const r of pool){const dd=Math.hypot(r.x-u.x,r.y-u.y);if(dd<bd2){bd2=dd;best=r;}}if(best){u.task={kind:resume,target:best};u.tx=best.x;u.ty=best.y;}else u.task=null;}else u.task=null;}}}}if(u.target){const e=u.target;if(!e||e.hp<=0)u.target=null;else{u.tx=e.x;u.ty=e.y;const d=Math.hypot(u.x-e.x,u.y-e.y);if(d<=D.rng+(e.r||10)){u.tx=null;if(u.cd<=0){u.cd=u.type==='monk'?60:30;if(u.type==='monk'){const ally=units.find(x=>x.owner.team===u.owner.team&&x!==u&&x.hp<x.maxhp&&Math.hypot(x.x-u.x,x.y-u.y)<120);if(ally){ally.hp=Math.min(ally.maxhp,ally.hp+15);particles.push({x:ally.x,y:ally.y,t:0,kind:'heal'});}else{const _ao0=u.owner.upg.atk||0;e.hp-=D.atk*(1+_ao0*0.15);projectiles.push({x:u.x,y:u.y,tx:e.x,ty:e.y,t:0,life:18,kind:'spirit'});}}else if(D.rng>30){const pk=u.type==='trebuchet'?'boulder':u.type==='crossbowman'?'bolt':'arrow';projectiles.push({x:u.x,y:u.y,tx:e.x,ty:e.y,t:0,life:u.type==='trebuchet'?35:18,kind:pk,dmg:D.atk*(1+(u.owner.upg.atk||0)*0.15),target:e,_aOwner:u.owner});}else{const _ao=u.owner.upg.atk||0,_ar=(e.owner&&e.owner.upg)?(e.owner.upg.armor||0):0;e.hp-=Math.max(1,D.atk*(1+_ao*0.15)*(1-_ar*0.08));particles.push({x:e.x,y:e.y,t:0,kind:'hit'});}}}}}const autoTypes=['soldier','pikeman','archer','crossbowman','cavalry','champion','knight','monk','warship','trebuchet'];if(!u.target&&!u.task&&autoTypes.includes(u.type)){let best=null,bd2=999;for(const o of units){if(o.owner.team!==u.owner.team){const d=Math.hypot(o.x-u.x,o.y-u.y);if(d<D.sight&&d<bd2){bd2=d;best=o;}}}if(!best)for(const o of buildings){if(o.owner.team!==u.owner.team){const d=Math.hypot(o.x-u.x,o.y-u.y);if(d<D.sight&&d<bd2){bd2=d;best=o;}}}if(best)u.target=best;}if(u.tx!==null){const dx=u.tx-u.x,dy=u.ty-u.y,d=Math.hypot(dx,dy);if(d<2)u.tx=null;else{u.facing=Math.atan2(dy,dx);const nx=u.x+dx/d*D.spd,ny=u.y+dy/d*D.spd;const onR=onRiver(nx,ny);const onBridge=(px,py)=>buildings.some(b=>b.type==='bridge'&&b.built>=1&&Math.hypot(b.x-px,b.y-py)<b.r+6);if(D.naval){if(onR){u.x=nx;u.y=ny;}else for(let a=1;a<16;a++){const sign=a%2===0?1:-1,ang=u.facing+sign*Math.ceil(a/2)*0.35,ax=u.x+Math.cos(ang)*D.spd,ay=u.y+Math.sin(ang)*D.spd;if(onRiver(ax,ay)){u.x=ax;u.y=ay;break;}}}else{if(!onR||onBridge(nx,ny)){u.x=nx;u.y=ny;}else{for(let a=1;a<16;a++){const sign=a%2===0?1:-1,ang=u.facing+sign*Math.ceil(a/2)*0.2,ax=u.x+Math.cos(ang)*D.spd,ay=u.y+Math.sin(ang)*D.spd;if(!onRiver(ax,ay)||onBridge(ax,ay)){u.x=ax;u.y=ay;break;}}}}}}if(D.naval&&u.passengers&&u.passengers.length)u.passengers.forEach(p=>{p.x=u.x;p.y=u.y;p.tx=null;p.target=null;p.task=null;});if(u.hp<=0){corpses.push({x:u.x,y:u.y,t:0});if(u.passengers&&u.passengers.length)u.passengers.forEach(p=>{p.embarked=null;p.hp=0;});const idx=selected.indexOf(u);if(idx>=0)selected.splice(idx,1);units.splice(i,1);}}
 buildings.forEach(b=>{if((b.type==='tower'||b.type==='castle'||b.type==='bombardtower')&&b.built>=1){if(b.cd>0)b.cd--;if(b.cd<=0){const rng=b.type==='castle'?280:(b.type==='bombardtower'?BLD_DEF.bombardtower.rng:BLD_DEF.tower.rng);const atk=b.type==='castle'?30:(b.type==='bombardtower'?BLD_DEF.bombardtower.atk:BLD_DEF.tower.atk);let best=null,bd2=999;for(const o of units){if(o.owner.team!==b.owner.team){const d=Math.hypot(o.x-b.x,o.y-b.y);if(d<rng&&d<bd2){bd2=d;best=o;}}}if(best){const isB=b.type==='bombardtower';projectiles.push({x:b.x,y:b.y-20,tx:best.x,ty:best.y,t:0,life:(b.type==='castle'||isB)?30:25,kind:(b.type==='castle'||isB)?'boulder':'arrow',dmg:atk,target:best});particles.push({x:b.x,y:b.y-26,t:0,kind:isB?'explosion':'hit'});b.cd=b.type==='castle'?20:(isB?60:45);}}}});
 for(let i=projectiles.length-1;i>=0;i--){const p=projectiles[i];p.t++;const k=p.t/p.life;p.cx=p.x+(p.tx-p.x)*k;p.cy=p.y+(p.ty-p.y)*k-Math.sin(k*Math.PI)*(p.kind==='boulder'?50:20);if(p.t>=p.life){if(p.target&&p.target.hp!==undefined){p.target.hp-=p.dmg||0;particles.push({x:p.target.x,y:p.target.y,t:0,kind:p.kind==='boulder'?'explosion':'hit'});}projectiles.splice(i,1);}}
 for(let i=particles.length-1;i>=0;i--){particles[i].t++;if(particles[i].t>30)particles.splice(i,1);}
@@ -857,6 +1066,7 @@ ctx.fillStyle='#aaa';ctx.beginPath();ctx.moveTo(b.x+26,b.y+8);ctx.lineTo(b.x+28,
 ctx.fillStyle='#5a3a10';ctx.fillRect(b.x-8,b.y-26,1.5,8);
 ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(b.x-7,b.y-26);ctx.lineTo(b.x,b.y-23);ctx.lineTo(b.x-7,b.y-20);ctx.closePath();ctx.fill();
 }break;
+case 'mining_camp':{ctx.fillStyle='#7a7060';ctx.fillRect(b.x-26,b.y+8,52,14);ctx.fillStyle='#5a5048';ctx.fillRect(b.x-22,b.y-10,28,20);ctx.fillStyle='#2a2418';ctx.beginPath();ctx.moveTo(b.x-26,b.y-10);ctx.lineTo(b.x-8,b.y-22);ctx.lineTo(b.x+10,b.y-10);ctx.closePath();ctx.fill();ctx.fillStyle='#3a3428';for(let i=0;i<5;i++){const x1=b.x-24+i*4,xt=b.x-8+i*0.5;ctx.beginPath();ctx.moveTo(x1,b.y-10);ctx.lineTo(xt,b.y-21);ctx.lineTo(xt+1,b.y-21);ctx.lineTo(x1+1.5,b.y-10);ctx.closePath();ctx.fill();}ctx.fillStyle='#8a8278';for(let row=0;row<2;row++)for(let i=0;i<4;i++){ctx.beginPath();ctx.arc(b.x+10+i*4,b.y+0+row*4,2.8,0,7);ctx.fill();}ctx.fillStyle='#f0c040';ctx.beginPath();ctx.arc(b.x+12,b.y+2,1.6,0,7);ctx.fill();ctx.beginPath();ctx.arc(b.x+18,b.y+6,1.6,0,7);ctx.fill();ctx.strokeStyle='#5a3818';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(b.x-12,b.y+18);ctx.lineTo(b.x-6,b.y+6);ctx.stroke();ctx.fillStyle='#888';ctx.beginPath();ctx.moveTo(b.x-7,b.y+5);ctx.lineTo(b.x-2,b.y+2);ctx.lineTo(b.x-2,b.y+5);ctx.lineTo(b.x-11,b.y+8);ctx.closePath();ctx.fill();ctx.fillStyle='#5a3a10';ctx.fillRect(b.x-8,b.y-26,1.5,8);ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(b.x-7,b.y-26);ctx.lineTo(b.x,b.y-23);ctx.lineTo(b.x-7,b.y-20);ctx.closePath();ctx.fill();}break;
 case 'market':{
 // Bustling market: colorful awning, stalls, baskets, hanging goods
 ctx.fillStyle='#a89878';ctx.fillRect(b.x-32,b.y+12,64,10);
@@ -1265,6 +1475,90 @@ function setupMobilePopups(){const buildGrid=document.getElementById('popBuildGr
 function openPop(id){closePopovers();document.getElementById(id).classList.add('show');}
 function closePopovers(){document.querySelectorAll('.popover').forEach(p=>p.classList.remove('show'));}
 function loop(){if(!ended)update();render();requestAnimationFrame(loop);}
+</script>
+<script>
+(function(){
+function openPopX(id){const p=document.getElementById(id);if(p)p.classList.add('show');}
+function closeAll(){document.querySelectorAll('.popover').forEach(p=>p.classList.remove('show'));}
+window.openPopX=openPopX;window.closeAllPops=closeAll;
+document.querySelectorAll('.popover [data-close]').forEach(b=>b.onclick=()=>closeAll());
+document.querySelectorAll('.popover').forEach(p=>p.addEventListener('click',e=>{if(e.target===p)closeAll();}));
+
+const RES=['wood','stone','gold','food','fish'];
+const ICONS={wood:'🪵',stone:'🪨',gold:'⚜',food:'🍖',fish:'🐟'};
+
+function selectedBuilding(){return (selected||[]).find(s=>s&&!s.type);}
+function human(){return players.find(p=>p.isHuman);}
+
+function refreshManage(){
+  const b=selectedBuilding();const btn=document.getElementById('btnManage');if(!btn)return;
+  if(b&&b.owner===human()&&['market','blacksmith','university'].includes(b.type)&&b.built>=1){
+    btn.style.display='inline-block';
+    btn.textContent=b.type==='market'?'⚜ TRADE':b.type==='blacksmith'?'🔨 UPGRADES':'🏛 RESEARCH';
+    btn.onclick=()=>{
+      if(b.type==='market')showMarket();
+      else if(b.type==='blacksmith')showBlack();
+      else showUni();
+    };
+  }else btn.style.display='none';
+}
+
+function showMarket(){
+  const g=document.getElementById('popMarketGrid');g.innerHTML='';const h=human();
+  const pairs=[['wood','stone'],['stone','gold'],['gold','food'],['food','wood'],['wood','gold'],['food','stone'],['gold','wood'],['stone','wood']];
+  pairs.forEach(([a,b])=>{
+    const bt=document.createElement('button');bt.className='b';
+    bt.innerHTML=ICONS[a]+' Sell 100 '+a+'<br>→ '+ICONS[b]+' Buy 50 '+b;
+    bt.onclick=()=>{if(h.res[a]<100){flash('Need 100 '+a);return;}h.res[a]-=100;h.res[b]+=50;flash('Traded 100 '+a+' for 50 '+b);};
+    g.appendChild(bt);
+  });
+  openPopX('popMarket');
+}
+
+function showBlack(){
+  const g=document.getElementById('popBlackGrid');g.innerHTML='';const h=human();
+  const items=[
+    {k:'atk',label:'⚔ Weapon Attack',cap:4,baseW:80,baseG:60},
+    {k:'armor',label:'🛡 Armor Defense',cap:4,baseW:60,baseG:80},
+  ];
+  items.forEach(it=>{
+    const lvl=h.upg[it.k]||0;
+    const bt=document.createElement('button');bt.className='b';
+    if(lvl>=it.cap){bt.innerHTML=it.label+'<br><b>MAX (Lv'+it.cap+')</b>';bt.disabled=true;bt.style.opacity=.5;}
+    else{
+      const cw=it.baseW*(lvl+1),cg=it.baseG*(lvl+1);
+      bt.innerHTML=it.label+' Lv'+(lvl+1)+'<br>Cost: '+cw+'W, '+cg+'G';
+      bt.onclick=()=>{if(h.res.wood<cw||h.res.gold<cg){flash('Need more wood/gold');return;}h.res.wood-=cw;h.res.gold-=cg;h.upg[it.k]=lvl+1;flash(it.label+' → Lv'+(lvl+1));showBlack();};
+    }
+    g.appendChild(bt);
+  });
+  openPopX('popBlack');
+}
+
+function showUni(){
+  const g=document.getElementById('popUniGrid');g.innerHTML='';const h=human();
+  const items=[
+    {k:'dress',label:'👘 Advanced Dress (cosmetic + +5% HP)',cap:3,baseW:120,baseG:80},
+    {k:'boat',label:'⛵ Naval Engineering (+25% boat HP & atk)',cap:3,baseW:150,baseG:100},
+    {k:'armor',label:'🛡 University Armor (+1 tier)',cap:2,baseW:200,baseG:150},
+  ];
+  items.forEach(it=>{
+    const lvl=h.upg[it.k]||0;
+    const bt=document.createElement('button');bt.className='b';
+    if(lvl>=it.cap){bt.innerHTML=it.label+'<br><b>MAX</b>';bt.disabled=true;bt.style.opacity=.5;}
+    else{
+      const cw=it.baseW*(lvl+1),cg=it.baseG*(lvl+1);
+      bt.innerHTML=it.label+' Lv'+(lvl+1)+'<br>Cost: '+cw+'W, '+cg+'G';
+      bt.onclick=()=>{if(h.res.wood<cw||h.res.gold<cg){flash('Need more wood/gold');return;}h.res.wood-=cw;h.res.gold-=cg;h.upg[it.k]=lvl+1;if(it.k==='dress'){units.filter(u=>u.owner===h).forEach(u=>{u.maxhp=Math.round(u.maxhp*1.05);u.hp=Math.min(u.maxhp,u.hp+u.maxhp*0.05);});}flash(it.label+' → Lv'+(lvl+1));showUni();};
+    }
+    g.appendChild(bt);
+  });
+  openPopX('popUni');
+}
+
+// poll every 200ms to show/hide manage button (avoids invasive patching of updateSelInfo)
+setInterval(refreshManage,200);
+})();
 </script>
 </body>
 </html>
